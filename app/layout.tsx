@@ -2,15 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'YieldVerse - Metaverse P2E',
+  title: 'YieldVerse - The YES Metaverse',
   description: 'Play games, earn YES tokens, cashout real crypto. The future of Play-to-Earn gaming.',
   keywords: ['play to earn', 'crypto games', 'metaverse', 'YES tokens', 'P2E'],
-  authors: [{ name: 'YieldVerse' }],
-  openGraph: {
-    title: 'YieldVerse - Metaverse P2E',
-    description: 'Play games, earn YES tokens, cashout real crypto.',
-    type: 'website',
-  },
 }
 
 export default function RootLayout({

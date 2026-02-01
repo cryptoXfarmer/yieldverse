@@ -1,7 +1,8 @@
 'use client'
 
-import { Rocket, Zap, Star, Globe, Coins, ArrowRight, Sparkles } from 'lucide-react'
+import { Rocket, Zap, Star, Globe, Coins, ArrowRight, Sparkles, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false)
@@ -12,7 +13,7 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Animated Stars Background */}
+      {/* Stars Background */}
       <div className="stars">
         {mounted && [...Array(100)].map((_, i) => (
           <div
@@ -28,23 +29,51 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Nebula Effect */}
+      {/* Nebula */}
       <div className="nebula" />
 
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+              <Globe className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              YIELDVERSE
+            </span>
+          </Link>
+          
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/login"
+              className="px-6 py-2 border border-cyan-400/50 rounded-full hover:bg-cyan-400/10 transition-colors"
+            >
+              Login
+            </Link>
+            <Link 
+              href="/register"
+              className="px-6 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full hover:opacity-90 transition-opacity"
+            >
+              Register
+            </Link>
+          </div>
+        </div>
+      </nav>
+
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 pt-20">
         {/* Hero Section */}
         <section className="min-h-screen flex items-center justify-center px-4">
           <div className="max-w-7xl mx-auto text-center">
-            {/* Logo / Title */}
             <div className="mb-8 animate-float">
               <div className="inline-flex items-center gap-3 mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 planet-glow flex items-center justify-center animate-spin-slow">
-                  <Globe className="w-8 h-8 text-white" />
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 planet-glow flex items-center justify-center animate-spin-slow">
+                  <Globe className="w-10 h-10 text-white" />
                 </div>
               </div>
-              <h1 className="text-7xl md:text-9xl font-bold mb-4">
-                <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent animate-pulse-glow">
+              <h1 className="text-6xl md:text-8xl font-bold mb-4">
+                <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-pink-400 bg-clip-text text-transparent">
                   YIELDVERSE
                 </span>
               </h1>
@@ -56,20 +85,24 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* CTA Buttons */}
+            {/* CTA */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full font-bold text-lg hover:scale-105 transition-transform overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-400 opacity-0 group-hover:opacity-100 transition-opacity blur-xl" />
-                <span className="relative flex items-center gap-2">
-                  <Rocket className="w-5 h-5" />
-                  Enter the Metaverse
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </button>
+              <Link 
+                href="/register"
+                className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full font-bold text-lg hover:scale-105 transition-transform overflow-hidden inline-flex items-center justify-center gap-2"
+              >
+                <Rocket className="w-5 h-5" />
+                Start Your Journey
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
               
-              <button className="px-8 py-4 border-2 border-cyan-400 rounded-full font-bold text-lg hover:bg-cyan-400/10 transition-colors">
-                Learn More
-              </button>
+              <Link 
+                href="/login"
+                className="px-8 py-4 border-2 border-cyan-400 rounded-full font-bold text-lg hover:bg-cyan-400/10 transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <User className="w-5 h-5" />
+                Already a Pilot? Login
+              </Link>
             </div>
 
             {/* Stats */}
@@ -105,7 +138,7 @@ export default function HomePage() {
             <p className="text-xl text-gray-400 text-center mb-16">Choose your adventure across the cosmos</p>
 
             <div className="grid md:grid-cols-2 gap-8">
-              {/* Energy Empire Card */}
+              {/* Energy Empire */}
               <div className="group relative bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-sm border-2 border-yellow-500/30 rounded-3xl p-8 hover:border-yellow-500 transition-all hover:scale-105">
                 <div className="absolute top-4 right-4">
                   <span className="px-4 py-1 bg-green-500 text-xs font-bold rounded-full animate-pulse">LIVE</span>
@@ -134,14 +167,19 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <button className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-lg hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2">
+                <a 
+                  href="https://cryptoxfarmer.github.io/energy-empire/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-lg hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2"
+                >
                   <Rocket className="w-5 h-5" />
                   Play Now
                   <ArrowRight className="w-5 h-5" />
-                </button>
+                </a>
               </div>
 
-              {/* StarForge PTC Card */}
+              {/* StarForge PTC */}
               <div className="group relative bg-gradient-to-br from-blue-900/20 to-purple-900/20 backdrop-blur-sm border-2 border-blue-500/30 rounded-3xl p-8 hover:border-blue-500 transition-all hover:scale-105">
                 <div className="absolute top-4 right-4">
                   <span className="px-4 py-1 bg-yellow-500 text-xs font-bold rounded-full">COMING SOON</span>
@@ -170,7 +208,10 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <button className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl font-bold text-lg opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
+                <button 
+                  disabled
+                  className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl font-bold text-lg opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
+                >
                   <Star className="w-5 h-5" />
                   Coming Soon
                 </button>
@@ -217,7 +258,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* CTA Section */}
+        {/* CTA */}
         <section className="py-20 px-4">
           <div className="max-w-4xl mx-auto text-center">
             <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 backdrop-blur-sm border-2 border-cyan-500 rounded-3xl p-12">
@@ -227,11 +268,14 @@ export default function HomePage() {
               <p className="text-xl text-gray-300 mb-8">
                 Start your cosmic journey today. Play, earn, and prosper!
               </p>
-              <button className="px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full font-bold text-xl hover:scale-105 transition-transform flex items-center gap-3 mx-auto">
+              <Link 
+                href="/register"
+                className="px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full font-bold text-xl hover:scale-105 transition-transform inline-flex items-center gap-3"
+              >
                 <Rocket className="w-6 h-6" />
                 Launch into YieldVerse
                 <Sparkles className="w-6 h-6" />
-              </button>
+              </Link>
             </div>
           </div>
         </section>

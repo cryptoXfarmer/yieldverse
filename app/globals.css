@@ -8,8 +8,7 @@
   padding: 0;
 }
 
-html,
-body {
+html, body {
   max-width: 100vw;
   overflow-x: hidden;
 }
@@ -42,14 +41,8 @@ body {
 }
 
 @keyframes twinkle {
-  0%, 100% { 
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% { 
-    opacity: 1;
-    transform: scale(1.2);
-  }
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
 }
 
 /* Nebula effect */
@@ -84,12 +77,10 @@ body {
 /* Energy pulse */
 @keyframes energy-pulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5),
-                0 0 40px rgba(255, 165, 0, 0.3);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 165, 0, 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(255, 215, 0, 0.8),
-                0 0 80px rgba(255, 165, 0, 0.5);
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.8), 0 0 80px rgba(255, 165, 0, 0.5);
   }
 }
 
@@ -124,22 +115,32 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* Pulse glow */
-.animate-pulse-glow {
-  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Card hover effect */
+.card-hover {
+  transition: all 0.3s ease;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-/* Smooth transitions */
+/* Input styles */
+input {
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  outline: none;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+}
+
+/* Button styles */
 button {
   transition: all 0.3s ease;
 }
 
-/* Scrollbar styling */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -153,6 +154,45 @@ button {
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #8b41ff, #20ffff);
+/* Loading spinner */
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #00f0ff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+/* Stat card glow */
+.stat-energy {
+  border-color: rgba(250, 204, 21, 0.3);
+}
+.stat-energy:hover {
+  border-color: rgba(250, 204, 21, 0.8);
+  box-shadow: 0 0 30px rgba(250, 204, 21, 0.3);
+}
+
+.stat-fuel {
+  border-color: rgba(249, 115, 22, 0.3);
+}
+.stat-fuel:hover {
+  border-color: rgba(249, 115, 22, 0.8);
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.3);
+}
+
+.stat-yes {
+  border-color: rgba(0, 240, 255, 0.3);
+}
+.stat-yes:hover {
+  border-color: rgba(0, 240, 255, 0.8);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
+}
+
+.stat-usd {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+.stat-usd:hover {
+  border-color: rgba(34, 197, 94, 0.8);
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
 }

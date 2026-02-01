@@ -1,0 +1,327 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { 
+  Globe, Zap, Fuel, Coins, DollarSign, LogOut, 
+  Rocket, Star, ArrowRight, RefreshCw, User,
+  TrendingUp, Calendar, ExternalLink
+} from 'lucide-react'
+import { supabase, User as UserType } from '@/lib/supabase'
+
+export default function DashboardPage() {
+  const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<UserType | null>(null)
+  const [wallet, setWallet] = useState<any>(null)
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    loadUserData()
+  }, [])
+
+  const loadUserData = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        router.push('/login')
+        return
+      }
+
+      // Load user profile
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      if (userError) {
+        console.error('User error:', userError)
+      } else {
+        setUser(userData)
+      }
+
+      // Load wallet
+      const { data: walletData, error: walletError } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single()
+
+      if (walletError) {
+        console.error('Wallet error:', walletError)
+      } else {
+        setWallet(walletData)
+      }
+
+    } catch (err) {
+      console.error('Error loading data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadUserData()
+    setRefreshing(false)
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M'
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+    return num.toLocaleString()
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center animate-spin-slow">
+            <Globe className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-gray-400">Loading your universe...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative min-h-screen">
+      {/* Stars */}
+      <div className="stars">
+        {mounted && [...Array(60)].map((_, i) => (
+          <div
+            key={i}
+            className="star"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 2}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Nebula */}
+      <div className="nebula" />
+
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+              <Globe className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              YIELDVERSE
+            </span>
+          </Link>
+          
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Content */}
+      <div className="relative z-10 pt-24 pb-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          
+          {/* Welcome Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+                <User className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">{user?.username || 'Pilot'}</h1>
+                <p className="text-gray-400">{user?.email}</p>
+              </div>
+            </div>
+            <p className="text-gray-500 text-sm mt-2">
+              <Calendar className="w-4 h-4 inline mr-1" />
+              Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+            </p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {/* Energy */}
+            <div className="bg-white/5 backdrop-blur-sm border-2 stat-energy rounded-2xl p-6 card-hover">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-yellow-400" />
+                </div>
+                <span className="text-gray-400 text-sm">Total Energy</span>
+              </div>
+              <p className="text-3xl font-bold text-yellow-400">
+                {formatNumber(user?.total_energy_earned || 0)}
+              </p>
+            </div>
+
+            {/* Fuel */}
+            <div className="bg-white/5 backdrop-blur-sm border-2 stat-fuel rounded-2xl p-6 card-hover">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <Fuel className="w-6 h-6 text-orange-400" />
+                </div>
+                <span className="text-gray-400 text-sm">Total Fuel</span>
+              </div>
+              <p className="text-3xl font-bold text-orange-400">
+                {formatNumber(user?.total_fuel_earned || 0)}
+              </p>
+            </div>
+
+            {/* YES Tokens */}
+            <div className="bg-white/5 backdrop-blur-sm border-2 stat-yes rounded-2xl p-6 card-hover">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                  <Coins className="w-6 h-6 text-cyan-400" />
+                </div>
+                <span className="text-gray-400 text-sm">YES Tokens</span>
+              </div>
+              <p className="text-3xl font-bold text-cyan-400 yes-glow">
+                {formatNumber(user?.total_yes_earned || 0)}
+              </p>
+            </div>
+
+            {/* Total Cashout */}
+            <div className="bg-white/5 backdrop-blur-sm border-2 stat-usd rounded-2xl p-6 card-hover">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-green-400" />
+                </div>
+                <span className="text-gray-400 text-sm">Total Cashout</span>
+              </div>
+              <p className="text-3xl font-bold text-green-400">
+                ${(user?.total_cashout_usd || 0).toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {/* Current Wallet */}
+          {wallet && (
+            <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6 mb-8">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-purple-400" />
+                Current Wallet Balance
+              </h2>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-yellow-400">{formatNumber(wallet.energy || 0)}</p>
+                  <p className="text-gray-400 text-sm">Energy</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-400">{formatNumber(wallet.fuel || 0)}</p>
+                  <p className="text-gray-400 text-sm">Fuel</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-cyan-400">{formatNumber(wallet.yes_tokens || 0)}</p>
+                  <p className="text-gray-400 text-sm">YES</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Games Section */}
+          <h2 className="text-2xl font-bold mb-4">Your Games</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Energy Empire */}
+            <div className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-sm border-2 border-yellow-500/30 rounded-2xl p-6 hover:border-yellow-500 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 energy-glow flex items-center justify-center">
+                    <Zap className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-yellow-400">Energy Empire</h3>
+                    <span className="text-xs px-2 py-1 bg-green-500 rounded-full">LIVE</span>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-gray-400 text-sm mb-4">Click, craft fuel, and dominate the energy cosmos!</p>
+              
+              <a 
+                href="https://cryptoxfarmer.github.io/energy-empire/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2"
+              >
+                <Rocket className="w-5 h-5" />
+                Play Now
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+
+            {/* StarForge PTC */}
+            <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 backdrop-blur-sm border-2 border-blue-500/30 rounded-2xl p-6 hover:border-blue-500 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 planet-glow flex items-center justify-center animate-spin-slow">
+                    <Star className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-blue-400">StarForge PTC</h3>
+                    <span className="text-xs px-2 py-1 bg-yellow-500 text-black rounded-full">COMING SOON</span>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-gray-400 text-sm mb-4">Watch ads, complete tasks, earn stars!</p>
+              
+              <button 
+                disabled
+                className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl font-bold opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Star className="w-5 h-5" />
+                Coming Soon
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mt-8 grid md:grid-cols-3 gap-4">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
+              <p className="text-gray-400 text-sm mb-1">Conversion Rate</p>
+              <p className="text-lg font-bold">100 Fuel = 1 YES</p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
+              <p className="text-gray-400 text-sm mb-1">Cashout Rate</p>
+              <p className="text-lg font-bold">1000 YES = $1 LTC</p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
+              <p className="text-gray-400 text-sm mb-1">Min Cashout</p>
+              <p className="text-lg font-bold">500 YES</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  )
+}
