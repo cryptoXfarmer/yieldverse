@@ -16,7 +16,7 @@ type Planet = {
   rarity: 'common' | 'rare' | 'epic' | 'legendary'
   max_tiles: number
   discovered_tiles: number
-  base_resources: number
+  base_resource: number
   rare_resources: number
   buildable_tiles: number
   bonus_energy_percent: number
@@ -105,7 +105,7 @@ export default function PlanetsPage() {
       rarity,
       max_tiles: Math.floor(Math.random() * (stats.tiles[1] - stats.tiles[0] + 1)) + stats.tiles[0],
       discovered_tiles: 2,
-      base_resources: Math.floor(Math.random() * 50) + 10,
+      base_resource: Math.floor(Math.random() * 50) + 10,
       rare_resources: Math.floor(Math.random() * 10),
       buildable_tiles: Math.floor(Math.random() * 5) + 1,
       bonus_energy_percent: Math.floor(Math.random() * (stats.bonus[1] - stats.bonus[0] + 1)) + stats.bonus[0],
@@ -129,7 +129,7 @@ export default function PlanetsPage() {
         rarity: 'legendary' as const,
         max_tiles: 100,
         discovered_tiles: 50,
-        base_resources: 500,
+        base_resource: 500,
         rare_resources: 100,
         buildable_tiles: 25,
         bonus_energy_percent: 50,
@@ -500,7 +500,7 @@ export default function PlanetsPage() {
 
                   <div className="grid grid-cols-2 gap-4 mt-6">
                     <div className="bg-black/30 rounded-xl p-4 text-center">
-                      <p className="text-2xl font-bold text-orange-400">{selectedPlanet.base_resources}</p>
+                      <p className="text-2xl font-bold text-orange-400">{selectedPlanet.base_resource}</p>
                       <p className="text-gray-500 text-sm">Base Resources</p>
                     </div>
                     <div className="bg-black/30 rounded-xl p-4 text-center">
