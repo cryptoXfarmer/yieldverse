@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Globe, Zap, Fuel, Coins, DollarSign, LogOut, 
   Rocket, Star, ArrowRight, RefreshCw, User,
-  TrendingUp, Calendar, ExternalLink
+  TrendingUp, Calendar, ExternalLink, Wallet, Gift
 } from 'lucide-react'
 import { supabase, User as UserType } from '@/lib/supabase'
 
@@ -16,11 +16,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserType | null>(null)
   const [wallet, setWallet] = useState<any>(null)
+  const [planets, setPlanets] = useState<any[]>([])
   const [refreshing, setRefreshing] = useState(false)
+  const [faucetPayBalance, setFaucetPayBalance] = useState<number | null>(null)
 
   useEffect(() => {
     setMounted(true)
     loadUserData()
+    loadFaucetPayBalance()
   }, [])
 
   const loadUserData = async () => {
@@ -39,11 +42,7 @@ export default function DashboardPage() {
         .eq('id', session.user.id)
         .single()
 
-      if (userError) {
-        console.error('User error:', userError)
-      } else {
-        setUser(userData)
-      }
+      if (!userError) setUser(userData)
 
       // Load wallet
       const { data: walletData, error: walletError } = await supabase
@@ -52,11 +51,15 @@ export default function DashboardPage() {
         .eq('user_id', session.user.id)
         .single()
 
-      if (walletError) {
-        console.error('Wallet error:', walletError)
-      } else {
-        setWallet(walletData)
-      }
+      if (!walletError) setWallet(walletData)
+
+      // Load planets
+      const { data: planetsData } = await supabase
+        .from('planets')
+        .select('*')
+        .eq('user_id', session.user.id)
+
+      setPlanets(planetsData || [])
 
     } catch (err) {
       console.error('Error loading data:', err)
@@ -65,9 +68,22 @@ export default function DashboardPage() {
     }
   }
 
+  const loadFaucetPayBalance = async () => {
+    try {
+      const response = await fetch('/api/faucetpay/balance')
+      const data = await response.json()
+      if (data.success) {
+        setFaucetPayBalance(data.balance)
+      }
+    } catch (err) {
+      console.error('Error loading FaucetPay balance:', err)
+    }
+  }
+
   const handleRefresh = async () => {
     setRefreshing(true)
     await loadUserData()
+    await loadFaucetPayBalance()
     setRefreshing(false)
   }
 
@@ -80,6 +96,10 @@ export default function DashboardPage() {
     if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M'
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
     return num.toLocaleString()
+  }
+
+  const formatLTC = (satoshis: number) => {
+    return (satoshis / 100000000).toFixed(4)
   }
 
   if (loading) {
@@ -112,8 +132,6 @@ export default function DashboardPage() {
           />
         ))}
       </div>
-
-      {/* Nebula */}
       <div className="nebula" />
 
       {/* Navigation */}
@@ -170,7 +188,6 @@ export default function DashboardPage() {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {/* Energy */}
             <div className="bg-white/5 backdrop-blur-sm border-2 stat-energy rounded-2xl p-6 card-hover">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
@@ -183,7 +200,6 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Fuel */}
             <div className="bg-white/5 backdrop-blur-sm border-2 stat-fuel rounded-2xl p-6 card-hover">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
@@ -196,7 +212,6 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* YES Tokens */}
             <div className="bg-white/5 backdrop-blur-sm border-2 stat-yes rounded-2xl p-6 card-hover">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
@@ -209,7 +224,6 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Total Cashout */}
             <div className="bg-white/5 backdrop-blur-sm border-2 stat-usd rounded-2xl p-6 card-hover">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -223,34 +237,96 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Current Wallet */}
-          {wallet && (
-            <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6 mb-8">
+          {/* Current Wallet + Pool */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Current Wallet */}
+            <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-purple-400" />
-                Current Wallet Balance
+                Current Wallet
               </h2>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-yellow-400">{formatNumber(wallet.energy || 0)}</p>
+                  <p className="text-2xl font-bold text-yellow-400">{formatNumber(wallet?.energy || 0)}</p>
                   <p className="text-gray-400 text-sm">Energy</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-orange-400">{formatNumber(wallet.fuel || 0)}</p>
+                  <p className="text-2xl font-bold text-orange-400">{formatNumber(wallet?.fuel || 0)}</p>
                   <p className="text-gray-400 text-sm">Fuel</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-cyan-400">{formatNumber(wallet.yes_tokens || 0)}</p>
+                  <p className="text-2xl font-bold text-cyan-400">{formatNumber(wallet?.yes_tokens || 0)}</p>
                   <p className="text-gray-400 text-sm">YES</p>
                 </div>
               </div>
             </div>
-          )}
+
+            {/* FaucetPay Pool */}
+            <div className="bg-gradient-to-r from-green-900/30 to-cyan-900/30 backdrop-blur-sm border border-green-500/30 rounded-2xl p-6">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-green-400" />
+                Pool Balance (LTC)
+              </h2>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-green-400">
+                  {faucetPayBalance !== null ? formatLTC(faucetPayBalance) : '---'} LTC
+                </p>
+                <p className="text-gray-400 text-sm mt-1">Available for cashouts</p>
+                <Link 
+                  href="/cashout"
+                  className="mt-4 inline-flex items-center gap-2 px-6 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Cashout
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Planets Section */}
+          <div className="bg-white/5 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Globe className="w-5 h-5 text-purple-400" />
+                My Planets
+              </h2>
+              <Link 
+                href="/planets"
+                className="text-cyan-400 hover:underline flex items-center gap-1"
+              >
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            
+            {planets.length === 0 ? (
+              <div className="text-center py-8">
+                <Gift className="w-12 h-12 mx-auto mb-3 text-gray-500" />
+                <p className="text-gray-400 mb-4">You don't have any planets yet!</p>
+                <Link 
+                  href="/planets"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-xl font-bold hover:opacity-90 transition-opacity"
+                >
+                  <Gift className="w-5 h-5" />
+                  Claim Free Planet
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {planets.slice(0, 4).map((planet) => (
+                  <div key={planet.id} className="bg-black/30 rounded-xl p-4 text-center">
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500" />
+                    <p className="font-bold text-sm truncate">{planet.name}</p>
+                    <p className="text-xs text-gray-500">{planet.rarity}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Games Section */}
           <h2 className="text-2xl font-bold mb-4">Your Games</h2>
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Energy Empire */}
+            {/* Energy Empire - LIEN CORRIGÉ */}
             <div className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-sm border-2 border-yellow-500/30 rounded-2xl p-6 hover:border-yellow-500 transition-all">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -267,7 +343,7 @@ export default function DashboardPage() {
               <p className="text-gray-400 text-sm mb-4">Click, craft fuel, and dominate the energy cosmos!</p>
               
               <a 
-                href="https://cryptoxfarmer.github.io/energy-empire/"
+                href="https://www.energy-empire.space"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2"
@@ -304,7 +380,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Quick Info */}
           <div className="mt-8 grid md:grid-cols-3 gap-4">
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
               <p className="text-gray-400 text-sm mb-1">Conversion Rate</p>
@@ -316,7 +392,7 @@ export default function DashboardPage() {
             </div>
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
               <p className="text-gray-400 text-sm mb-1">Min Cashout</p>
-              <p className="text-lg font-bold">500 YES</p>
+              <p className="text-lg font-bold">100 YES ($0.10)</p>
             </div>
           </div>
 
