@@ -118,6 +118,64 @@ export default function PlanetsPage() {
     }
   }
 
+  // 🎁 SECRET TESTER REWARD - Legendary Planet with MAX stats!
+  const claimTesterReward = async () => {
+    if (!userId || claiming) return
+    setClaiming(true)
+
+    try {
+      const legendaryPlanet = {
+        name: `Nexus-Prime-OMEGA`,
+        rarity: 'legendary' as const,
+        max_tiles: 100,
+        discovered_tiles: 50,
+        base_resources: 500,
+        rare_resources: 100,
+        buildable_tiles: 25,
+        bonus_energy_percent: 50,
+        bonus_rare_drop: 20,
+        tier: 5,
+        upgrade_cost: 0,
+        is_nft: true,
+        is_active: true,
+        purchase_price: 0
+      }
+      
+      const { data, error } = await supabase
+        .from('planets')
+        .insert({
+          user_id: userId,
+          ...legendaryPlanet
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error claiming tester reward:', error)
+        alert('Error: ' + error.message)
+      } else {
+        // 🎁 BONUS: Also give 500 YES tokens for testing cashout!
+        await supabase
+          .from('wallets')
+          .update({ yes_tokens: 500 })
+          .eq('user_id', userId)
+        
+        await supabase
+          .from('users')
+          .update({ total_yes_earned: 500 })
+          .eq('id', userId)
+
+        setPlanets([...planets, data])
+        setSelectedPlanet(data)
+        alert('🎉 LEGENDARY PLANET + 500 YES TOKENS CLAIMED! Welcome, Tester!')
+      }
+    } catch (err) {
+      console.error('Error:', err)
+    } finally {
+      setClaiming(false)
+    }
+  }
+
   const claimFreePlanet = async () => {
     if (!userId || claiming) return
     setClaiming(true)
@@ -300,18 +358,34 @@ export default function PlanetsPage() {
               <Gift className="w-16 h-16 mx-auto mb-4 text-cyan-400" />
               <h2 className="text-2xl font-bold mb-2">Claim Your Free Starter Planet!</h2>
               <p className="text-gray-400 mb-6">Every new Pilot gets one free Common planet to start their journey.</p>
-              <button
-                onClick={claimFreePlanet}
-                disabled={claiming}
-                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl font-bold text-lg hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2 mx-auto"
-              >
-                {claiming ? (
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Sparkles className="w-5 h-5" />
-                )}
-                {claiming ? 'Generating Planet...' : 'Claim Free Planet'}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={claimFreePlanet}
+                  disabled={claiming}
+                  className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl font-bold text-lg hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2 mx-auto"
+                >
+                  {claiming ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-5 h-5" />
+                  )}
+                  {claiming ? 'Generating...' : 'Claim Free Planet'}
+                </button>
+                
+                {/* 🎁 SECRET TESTER BUTTON */}
+                <button
+                  onClick={claimTesterReward}
+                  disabled={claiming}
+                  className="px-8 py-4 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 rounded-xl font-bold text-lg hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2 mx-auto animate-pulse"
+                >
+                  {claiming ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Star className="w-5 h-5" />
+                  )}
+                  🎁 Tester Reward (LEGENDARY)
+                </button>
+              </div>
             </div>
           )}
 
