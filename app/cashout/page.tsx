@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, Coins, DollarSign, Wallet, RefreshCw,
-  ArrowRight, AlertCircle, CheckCircle, ExternalLink, Mail
+  ArrowRight, AlertCircle, CheckCircle, ExternalLink, Mail, Zap
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -23,8 +23,8 @@ export default function CashoutPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const MIN_CASHOUT = 100 // 100 YES = $0.10
-  const YES_TO_USD = 0.001 // 1 YES = $0.001 (1000 YES = $1)
+  const MIN_CASHOUT = 100
+  const YES_TO_USD = 0.001
 
   useEffect(() => {
     setMounted(true)
@@ -35,30 +35,14 @@ export default function CashoutPage() {
   const loadData = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        router.push('/login')
-        return
-      }
+      if (!session) { router.push('/login'); return }
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-
-      const { data: walletData } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single()
+      const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).single()
+      const { data: walletData } = await supabase.from('wallets').select('*').eq('user_id', session.user.id).single()
 
       setUser(userData)
       setWallet(walletData)
-      if (walletData?.faucetpay_email) {
-        setFaucetpayEmail(walletData.faucetpay_email)
-      }
-
+      if (walletData?.faucetpay_email) setFaucetpayEmail(walletData.faucetpay_email)
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -73,7 +57,7 @@ export default function CashoutPage() {
       const data = await response.json()
       if (data.success) setFaucetPayBalance(data.balance)
     } catch (err) {
-      console.error('Error loading FaucetPay balance:', err)
+      console.error('Error:', err)
     } finally {
       setLoadingBalance(false)
     }
@@ -82,62 +66,52 @@ export default function CashoutPage() {
   const formatLTC = (satoshis: number) => (satoshis / 100000000).toFixed(8)
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
-  const handleCashout = async () => {
+  const handleInstantCashout = async () => {
     setError('')
     setSuccess('')
     const amount = parseInt(cashoutAmount)
 
-    if (!amount || amount < MIN_CASHOUT) {
-      setError(`Minimum cashout is ${MIN_CASHOUT} YES`)
-      return
-    }
-    if (!wallet || amount > (wallet.yes_tokens || 0)) {
-      setError('Insufficient YES tokens')
-      return
-    }
-    if (!faucetpayEmail || !validateEmail(faucetpayEmail)) {
-      setError('Please enter a valid FaucetPay email address')
-      return
-    }
+    if (!amount || amount < MIN_CASHOUT) { setError(`Minimum cashout is ${MIN_CASHOUT} YES`); return }
+    if (!wallet || amount > (wallet.yes_tokens || 0)) { setError('Insufficient YES tokens'); return }
+    if (!faucetpayEmail || !validateEmail(faucetpayEmail)) { setError('Please enter a valid FaucetPay email'); return }
 
     setProcessing(true)
     try {
       const usdValue = amount * YES_TO_USD
 
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update({ 
-          yes_tokens: (wallet.yes_tokens || 0) - amount,
-          faucetpay_email: faucetpayEmail
-        })
-        .eq('user_id', user.id)
+      // 1. Envoyer le paiement INSTANT via API FaucetPay
+      const payResponse = await fetch('/api/faucetpay/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: faucetpayEmail, amount_usd: usdValue })
+      })
+      const payData = await payResponse.json()
+      if (!payData.success) throw new Error(payData.error || 'Payment failed')
 
-      if (walletError) throw walletError
+      // 2. Déduire les YES du wallet
+      await supabase.from('wallets').update({ 
+        yes_tokens: (wallet.yes_tokens || 0) - amount,
+        faucetpay_email: faucetpayEmail
+      }).eq('user_id', user.id)
 
-      const { error: userError } = await supabase
-        .from('users')
-        .update({ total_cashout_usd: (user.total_cashout_usd || 0) + usdValue })
-        .eq('id', user.id)
+      // 3. Mettre à jour les stats
+      await supabase.from('users').update({ 
+        total_cashout_usd: (user.total_cashout_usd || 0) + usdValue 
+      }).eq('id', user.id)
 
-      if (userError) throw userError
+      // 4. Enregistrer le cashout
+      await supabase.from('cashouts').insert({
+        user_id: user.id,
+        amount: amount,
+        faucetpay_email: faucetpayEmail,
+        status: 'completed',
+        processed_at: new Date().toISOString()
+      }).catch(() => {})
 
-      // Enregistrer le cashout dans la table cashouts
-      try {
-        await supabase
-          .from('cashouts')
-          .insert({
-            user_id: user.id,
-            amount: amount,
-            faucetpay_email: faucetpayEmail,
-            status: 'pending'
-          })
-      } catch (cashoutErr) {
-        console.log('Cashouts table may not exist yet')
-      }
-
-      setSuccess(`Cashout of ${amount} YES ($${usdValue.toFixed(2)}) submitted! Payment will be sent to ${faucetpayEmail} within 24h.`)
+      setSuccess(`✅ INSTANT PAYMENT SENT! ${amount} YES ($${usdValue.toFixed(2)}) sent to ${faucetpayEmail}`)
       setCashoutAmount('')
       loadData()
+      loadFaucetPayBalance()
 
     } catch (err: any) {
       setError(err.message || 'Cashout failed')
@@ -146,43 +120,32 @@ export default function CashoutPage() {
     }
   }
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="spinner" /></div>
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="spinner" /></div>
 
   return (
     <div className="relative min-h-screen">
-      <div className="stars">
-        {mounted && [...Array(60)].map((_, i) => (
-          <div key={i} className="star" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 3}s` }} />
-        ))}
-      </div>
+      <div className="stars">{mounted && [...Array(60)].map((_, i) => <div key={i} className="star" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 3}s` }} />)}</div>
       <div className="nebula" />
 
       <nav className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="p-2 hover:bg-white/10 rounded-lg transition-colors"><ArrowLeft className="w-5 h-5" /></Link>
-            <div className="flex items-center gap-2"><DollarSign className="w-6 h-6 text-green-400" /><span className="text-xl font-bold">Cashout</span></div>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
+          <Link href="/dashboard" className="p-2 hover:bg-white/10 rounded-lg"><ArrowLeft className="w-5 h-5" /></Link>
+          <div className="flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400" /><span className="text-xl font-bold">Instant Cashout</span></div>
         </div>
       </nav>
 
       <div className="relative z-10 pt-24 pb-12 px-4">
         <div className="max-w-2xl mx-auto">
           
-          {/* FaucetPay Pool Balance */}
+          {/* Pool Balance */}
           <div className="bg-gradient-to-r from-green-900/30 to-cyan-900/30 border border-green-500/30 rounded-2xl p-6 mb-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-bold flex items-center gap-2"><Wallet className="w-5 h-5 text-green-400" />YieldVerse Pool Balance</h2>
-              <button onClick={loadFaucetPayBalance} disabled={loadingBalance} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <h2 className="text-lg font-bold flex items-center gap-2"><Wallet className="w-5 h-5 text-green-400" />Pool Balance</h2>
+              <button onClick={loadFaucetPayBalance} disabled={loadingBalance} className="p-2 hover:bg-white/10 rounded-lg">
                 <RefreshCw className={`w-4 h-4 ${loadingBalance ? 'animate-spin' : ''}`} />
               </button>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-3xl font-bold text-green-400">{faucetPayBalance !== null ? formatLTC(faucetPayBalance) : '---'} LTC</div>
-              <span className="text-gray-400 text-sm">Available for payouts</span>
-            </div>
+            <div className="text-3xl font-bold text-green-400">{faucetPayBalance !== null ? formatLTC(faucetPayBalance) : '---'} LTC</div>
           </div>
 
           {/* Your Balance */}
@@ -192,51 +155,46 @@ export default function CashoutPage() {
             <p className="text-gray-400">≈ ${((wallet?.yes_tokens || 0) * YES_TO_USD).toFixed(2)} USD</p>
           </div>
 
-          {/* Cashout Form */}
+          {/* Instant Badge */}
+          <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-500/30 rounded-2xl p-4 mb-6 text-center">
+            <div className="flex items-center justify-center gap-2 text-yellow-400">
+              <Zap className="w-6 h-6" /><span className="text-xl font-bold">⚡ INSTANT PAYOUTS ⚡</span><Zap className="w-6 h-6" />
+            </div>
+            <p className="text-gray-400 text-sm mt-1">Payments sent immediately to FaucetPay!</p>
+          </div>
+
+          {/* Form */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-            <h2 className="text-lg font-bold mb-6">Request Cashout</h2>
+            <h2 className="text-lg font-bold mb-6">Instant Cashout</h2>
 
-            {error && (
-              <div className="mb-4 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-400" /><span className="text-red-400">{error}</span>
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-4 p-4 bg-green-500/10 border border-green-500/50 rounded-xl flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-400" /><span className="text-green-400">{success}</span>
-              </div>
-            )}
+            {error && <div className="mb-4 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center gap-3"><AlertCircle className="w-5 h-5 text-red-400" /><span className="text-red-400">{error}</span></div>}
+            {success && <div className="mb-4 p-4 bg-green-500/10 border border-green-500/50 rounded-xl flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-400" /><span className="text-green-400">{success}</span></div>}
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Amount (YES)</label>
-                <input type="number" value={cashoutAmount} onChange={(e) => setCashoutAmount(e.target.value)} placeholder={`Min: ${MIN_CASHOUT} YES`} min={MIN_CASHOUT} max={wallet?.yes_tokens || 0} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400 transition-colors" />
+                <input type="number" value={cashoutAmount} onChange={(e) => setCashoutAmount(e.target.value)} placeholder={`Min: ${MIN_CASHOUT} YES`} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400" />
                 {cashoutAmount && <p className="text-sm text-gray-400 mt-2">= ${(parseInt(cashoutAmount) * YES_TO_USD).toFixed(2)} USD</p>}
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2"><Mail className="w-4 h-4" />FaucetPay Email</label>
-                <input type="email" value={faucetpayEmail} onChange={(e) => setFaucetpayEmail(e.target.value)} placeholder="your-email@faucetpay.io" className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400 transition-colors" />
-                <p className="text-xs text-gray-500 mt-1">Use the same email as your FaucetPay account</p>
+                <input type="email" value={faucetpayEmail} onChange={(e) => setFaucetpayEmail(e.target.value)} placeholder="your-email@faucetpay.io" className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400" />
               </div>
 
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                <p className="text-yellow-400 text-sm"><strong>Rates:</strong><br/>• 1000 YES = $1.00 LTC<br/>• Minimum: {MIN_CASHOUT} YES ($0.10)<br/>• Processing: Within 24 hours</p>
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                <p className="text-green-400 text-sm"><strong>⚡ Instant:</strong> 1000 YES = $1 LTC • Min: {MIN_CASHOUT} YES</p>
               </div>
 
-              <button onClick={handleCashout} disabled={processing || !cashoutAmount || parseInt(cashoutAmount) < MIN_CASHOUT || !faucetpayEmail} className="w-full py-4 bg-gradient-to-r from-green-600 to-cyan-600 rounded-xl font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2">
-                {processing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <><DollarSign className="w-5 h-5" />Request Cashout<ArrowRight className="w-5 h-5" /></>}
+              <button onClick={handleInstantCashout} disabled={processing || !cashoutAmount || parseInt(cashoutAmount) < MIN_CASHOUT || !faucetpayEmail} className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+                {processing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <><Zap className="w-5 h-5" />Instant Cashout</>}
               </button>
             </div>
           </div>
 
-          {/* Info */}
           <div className="mt-6 text-center">
-            <p className="text-gray-500 text-sm mb-2">Don't have a FaucetPay account? <a href="https://faucetpay.io/?r=2983478" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Register here (free)</a></p>
-            <a href="https://faucetpay.io" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-cyan-400 transition-colors text-sm flex items-center justify-center gap-1">Powered by FaucetPay<ExternalLink className="w-3 h-3" /></a>
+            <p className="text-gray-500 text-sm">No FaucetPay? <a href="https://faucetpay.io/?r=2983478" target="_blank" className="text-cyan-400 hover:underline">Register free</a></p>
           </div>
-
         </div>
       </div>
     </div>

@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { 
   Globe, Zap, Fuel, Coins, DollarSign, LogOut, 
   Rocket, Star, ArrowRight, RefreshCw, User,
-  TrendingUp, Calendar, ExternalLink, Wallet, Gift
+  TrendingUp, Calendar, ExternalLink, Wallet, Gift, Shield
 } from 'lucide-react'
 import { supabase, User as UserType } from '@/lib/supabase'
+
+const ADMIN_EMAILS = ['gtrust1985@gmail.com']
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -147,6 +149,16 @@ export default function DashboardPage() {
           </Link>
           
           <div className="flex items-center gap-4">
+            {/* Admin Button - Only for admins */}
+            {user?.email && ADMIN_EMAILS.includes(user.email) && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
+              >
+                <Shield className="w-4 h-4 text-red-400" />
+                <span className="text-red-400">Admin</span>
+              </Link>
+            )}
             <button
               onClick={handleRefresh}
               disabled={refreshing}
