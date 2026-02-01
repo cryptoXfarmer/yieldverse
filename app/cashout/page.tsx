@@ -99,14 +99,18 @@ export default function CashoutPage() {
         total_cashout_usd: (user.total_cashout_usd || 0) + usdValue 
       }).eq('id', user.id)
 
-      // 4. Enregistrer le cashout
-      await supabase.from('cashouts').insert({
-        user_id: user.id,
-        amount: amount,
-        faucetpay_email: faucetpayEmail,
-        status: 'completed',
-        processed_at: new Date().toISOString()
-      }).catch(() => {})
+      // 4. Enregistrer le cashout (ignore errors if table doesn't exist)
+      try {
+        await supabase.from('cashouts').insert({
+          user_id: user.id,
+          amount: amount,
+          faucetpay_email: faucetpayEmail,
+          status: 'completed',
+          processed_at: new Date().toISOString()
+        })
+      } catch (e) {
+        // Table might not exist, ignore
+      }
 
       setSuccess(`✅ INSTANT PAYMENT SENT! ${amount} YES ($${usdValue.toFixed(2)}) sent to ${faucetpayEmail}`)
       setCashoutAmount('')

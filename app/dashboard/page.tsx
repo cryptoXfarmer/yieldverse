@@ -21,11 +21,13 @@ export default function DashboardPage() {
   const [planets, setPlanets] = useState<any[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [faucetPayBalance, setFaucetPayBalance] = useState<number | null>(null)
+  const [newsItems, setNewsItems] = useState<string[]>([])
 
   useEffect(() => {
     setMounted(true)
     loadUserData()
     loadFaucetPayBalance()
+    loadRecentActivity()
   }, [])
 
   const loadUserData = async () => {
@@ -79,6 +81,65 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Error loading FaucetPay balance:', err)
+    }
+  }
+
+  const loadRecentActivity = async () => {
+    try {
+      const news: string[] = []
+      
+      // Get recent cashouts
+      const { data: cashouts } = await supabase
+        .from('cashouts')
+        .select('amount, faucetpay_email, created_at, status')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(5)
+      
+      cashouts?.forEach(c => {
+        const email = c.faucetpay_email.split('@')[0].slice(0, 4) + '***'
+        news.push(`💰 ${email} withdrew ${c.amount} YES ($${(c.amount * 0.001).toFixed(2)})`)
+      })
+
+      // Get recent users
+      const { data: users } = await supabase
+        .from('users')
+        .select('username, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5)
+      
+      users?.forEach(u => {
+        news.push(`🚀 ${u.username} joined YieldVerse!`)
+      })
+
+      // Get recent planets
+      const { data: planets } = await supabase
+        .from('planets')
+        .select('name, rarity, users(username)')
+        .order('created_at', { ascending: false })
+        .limit(3)
+      
+      planets?.forEach((p: any) => {
+        const rarityEmoji = p.rarity === 'legendary' ? '🌟' : p.rarity === 'epic' ? '💜' : p.rarity === 'rare' ? '💙' : '⚪'
+        news.push(`${rarityEmoji} ${p.users?.username || 'Pilot'} discovered ${p.name}!`)
+      })
+
+      // Shuffle and set
+      const shuffled = news.sort(() => Math.random() - 0.5)
+      setNewsItems(shuffled.length > 0 ? shuffled : [
+        '🚀 Welcome to YieldVerse!',
+        '⚡ Play Energy Empire to earn YES tokens!',
+        '🪐 Discover planets and boost your earnings!',
+        '💰 Instant cashouts via FaucetPay!'
+      ])
+    } catch (err) {
+      console.error('Error loading activity:', err)
+      setNewsItems([
+        '🚀 Welcome to YieldVerse!',
+        '⚡ Play Energy Empire to earn YES tokens!',
+        '🪐 Discover planets and boost your earnings!',
+        '💰 Instant cashouts via FaucetPay!'
+      ])
     }
   }
 
@@ -177,8 +238,23 @@ export default function DashboardPage() {
         </div>
       </nav>
 
+      {/* News Ticker */}
+      {mounted && newsItems.length > 0 && (
+        <div className="fixed top-[73px] left-0 right-0 z-40 bg-gradient-to-r from-purple-900/90 via-cyan-900/90 to-purple-900/90 border-b border-cyan-500/30 overflow-hidden">
+          <div className="news-ticker py-2">
+            <div className="news-ticker-content">
+              {[...newsItems, ...newsItems].map((item, i) => (
+                <span key={i} className="mx-8 text-sm whitespace-nowrap">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
-      <div className="relative z-10 pt-24 pb-12 px-4">
+      <div className="relative z-10 pt-32 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
           
           {/* Welcome Header */}
