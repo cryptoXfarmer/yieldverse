@@ -1,5 +1,5 @@
 {
-  "name": "yieldverse-hub",
+  "name": "yieldverse-metaverse",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -12,8 +12,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "@supabase/supabase-js": "^2.39.0",
-    "lucide-react": "^0.263.1",
-    "zustand": "^4.4.7"
+    "lucide-react": "^0.263.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
