@@ -5,12 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, Globe, Zap, Diamond, Factory, Star, 
-  Compass, RefreshCw, Info, ChevronUp, Coins
+  Compass, RefreshCw, Info, ChevronUp, Coins, Clock, Gift, Home
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import HexGrid, { Tile, TileType } from '@/components/HexGrid'
 
 const EXPLORE_COST = 100 // Fuel pour explorer
+const CLAIM_INTERVAL = 6 * 60 * 60 * 1000 // 6 heures en millisecondes
 
 const TILE_PROBABILITIES: { type: TileType; weight: number }[] = [
   { type: 'empty', weight: 35 },
@@ -23,6 +24,7 @@ const TILE_PROBABILITIES: { type: TileType; weight: number }[] = [
 const TILE_BONUSES: Record<TileType, { base: number; perLevel: number; resource: string }> = {
   unknown: { base: 0, perLevel: 0, resource: '' },
   empty: { base: 0, perLevel: 0, resource: '' },
+  hq: { base: 0, perLevel: 0, resource: '' },
   energy: { base: 5, perLevel: 3, resource: 'Fuel/day' },
   crystal: { base: 10, perLevel: 5, resource: 'YES/day' },
   factory: { base: 2, perLevel: 1, resource: 'Fuel/day' },
@@ -42,11 +44,32 @@ function PlanetExploreContent() {
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null)
   const [exploring, setExploring] = useState(false)
   const [upgrading, setUpgrading] = useState(false)
+  const [claiming, setClaiming] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [nextClaimTime, setNextClaimTime] = useState<number>(0)
+  const [timeLeft, setTimeLeft] = useState<string>('')
 
   useEffect(() => {
     loadData()
   }, [planetId])
+
+  // Timer pour le prochain claim
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (nextClaimTime > 0) {
+        const remaining = nextClaimTime - Date.now()
+        if (remaining <= 0) {
+          setTimeLeft('Ready!')
+        } else {
+          const hours = Math.floor(remaining / (60 * 60 * 1000))
+          const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000))
+          const seconds = Math.floor((remaining % (60 * 1000)) / 1000)
+          setTimeLeft(`${hours}h ${minutes}m ${seconds}s`)
+        }
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [nextClaimTime])
 
   const loadData = async () => {
     try {
@@ -85,11 +108,71 @@ function PlanetExploreContent() {
       if (planetData) {
         setPlanet(planetData)
         await loadOrGenerateTiles(planetData, session.user.id)
+        
+        // Calculer le prochain claim
+        const lastClaim = planetData.last_claim_at ? new Date(planetData.last_claim_at).getTime() : 0
+        setNextClaimTime(lastClaim + CLAIM_INTERVAL)
       }
     } catch (err) {
       console.error('Error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Fonction de claim des ressources
+  const claimResources = async () => {
+    if (!user || !wallet || !planet || claiming) return
+    if (nextClaimTime > Date.now()) {
+      setMessage({ type: 'error', text: 'Not ready yet! Wait for the timer.' })
+      return
+    }
+
+    setClaiming(true)
+    setMessage(null)
+
+    try {
+      // Calculer les bonus totaux des tiles
+      const fuelBonus = tiles
+        .filter(t => t.type === 'energy' || t.type === 'factory')
+        .reduce((sum, t) => sum + t.bonus, 0)
+      
+      const yesBonus = tiles
+        .filter(t => t.type === 'crystal' || t.type === 'artifact')
+        .reduce((sum, t) => sum + t.bonus, 0)
+
+      // Diviser par 4 car c'est toutes les 6h (pas 24h)
+      const fuelToClaim = Math.floor(fuelBonus / 4)
+      const yesToClaim = Math.floor(yesBonus / 4)
+
+      // Update wallet
+      await supabase.from('wallets').update({
+        fuel: (wallet.fuel || 0) + fuelToClaim,
+        yes_tokens: (wallet.yes_tokens || 0) + yesToClaim
+      }).eq('user_id', user.id)
+
+      // Update planet last_claim_at
+      await supabase.from('planets').update({
+        last_claim_at: new Date().toISOString()
+      }).eq('id', planet.id)
+
+      // Update local state
+      setWallet({
+        ...wallet,
+        fuel: (wallet.fuel || 0) + fuelToClaim,
+        yes_tokens: (wallet.yes_tokens || 0) + yesToClaim
+      })
+      setNextClaimTime(Date.now() + CLAIM_INTERVAL)
+
+      setMessage({ 
+        type: 'success', 
+        text: `🎁 Claimed! +${fuelToClaim} Fuel, +${yesToClaim} YES` 
+      })
+
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message })
+    } finally {
+      setClaiming(false)
     }
   }
 
@@ -335,6 +418,72 @@ function PlanetExploreContent() {
           {/* Side Panel */}
           <div className="space-y-4">
             
+            {/* HQ Claim Panel */}
+            <div className="bg-gradient-to-br from-emerald-900/40 to-green-900/40 rounded-xl border-2 border-emerald-500/50 p-5">
+              <h2 className="font-bold mb-3 flex items-center gap-2">
+                <Home className="w-5 h-5 text-emerald-400" />
+                Headquarters
+              </h2>
+              
+              {/* Timer */}
+              <div className="bg-black/30 rounded-lg p-3 mb-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-gray-400 text-sm flex items-center gap-1">
+                    <Clock className="w-4 h-4" /> Next Claim
+                  </span>
+                  <span className={`font-mono font-bold ${timeLeft === 'Ready!' ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {timeLeft || 'Loading...'}
+                  </span>
+                </div>
+                
+                {/* Progress bar */}
+                <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-gradient-to-r from-emerald-500 to-green-400 h-2 rounded-full transition-all"
+                    style={{ 
+                      width: `${Math.min(100, Math.max(0, 100 - ((nextClaimTime - Date.now()) / CLAIM_INTERVAL) * 100))}%` 
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Pending Rewards */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="bg-black/30 rounded-lg p-2 text-center">
+                  <p className="text-xs text-gray-400">Pending Fuel</p>
+                  <p className="text-orange-400 font-bold">
+                    +{Math.floor(tiles.filter(t => t.type === 'energy' || t.type === 'factory').reduce((s, t) => s + t.bonus, 0) / 4)}
+                  </p>
+                </div>
+                <div className="bg-black/30 rounded-lg p-2 text-center">
+                  <p className="text-xs text-gray-400">Pending YES</p>
+                  <p className="text-green-400 font-bold">
+                    +{Math.floor(tiles.filter(t => t.type === 'crystal' || t.type === 'artifact').reduce((s, t) => s + t.bonus, 0) / 4)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Claim Button */}
+              <button
+                onClick={claimResources}
+                disabled={claiming || (nextClaimTime > Date.now())}
+                className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                  nextClaimTime <= Date.now() 
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:brightness-110 animate-pulse' 
+                    : 'bg-gray-700 cursor-not-allowed'
+                }`}
+              >
+                {claiming ? (
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Gift className="w-5 h-5" />
+                    {nextClaimTime <= Date.now() ? 'Claim Rewards!' : 'Waiting...'}
+                  </>
+                )}
+              </button>
+            </div>
+
             {/* Selected Tile */}
             <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
               <h2 className="font-bold mb-4 flex items-center gap-2">
@@ -344,7 +493,14 @@ function PlanetExploreContent() {
 
               {selectedTile ? (
                 <div className="space-y-3">
-                  {selectedTile.discovered ? (
+                  {/* Check if HQ */}
+                  {selectedTile.q === 0 && selectedTile.r === 0 ? (
+                    <div className="text-center py-4">
+                      <Home className="w-12 h-12 mx-auto text-emerald-400 mb-2" />
+                      <p className="text-emerald-300 font-bold">Command Center</p>
+                      <p className="text-gray-400 text-sm mt-1">Click "Claim Rewards" above to collect resources!</p>
+                    </div>
+                  ) : selectedTile.discovered ? (
                     <>
                       <div className="flex justify-between">
                         <span className="text-gray-400">Type</span>
