@@ -142,8 +142,12 @@ export default function CashoutPage() {
           }).eq('user_id', user.referred_by)
 
           // Update referrer earnings
+          const { data: referrerUser } = await supabase.from('users')
+            .select('ref_earnings_yes')
+            .eq('id', user.referred_by)
+            .single()
           await supabase.from('users').update({
-            ref_earnings_yes: supabase.sql`COALESCE(ref_earnings_yes, 0) + ${referrerFee}`
+            ref_earnings_yes: ((referrerUser?.ref_earnings_yes as number) || 0) + referrerFee
           }).eq('id', user.referred_by)
         }
 

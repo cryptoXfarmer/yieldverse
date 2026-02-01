@@ -390,7 +390,7 @@ export default function DashboardPage() {
             {planets.length === 0 ? (
               <div className="text-center py-8">
                 <Gift className="w-12 h-12 mx-auto mb-3 text-gray-500" />
-                <p className="text-gray-400 mb-4">You don't have any planets yet!</p>
+                <p className="text-gray-400 mb-4">You don&apos;t have any planets yet!</p>
                 <Link 
                   href="/planets"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-xl font-bold hover:opacity-90 transition-opacity"

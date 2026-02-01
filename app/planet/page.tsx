@@ -499,7 +499,7 @@ function PlanetExploreContent() {
                     <div className="text-center py-4">
                       <Home className="w-12 h-12 mx-auto text-emerald-400 mb-2" />
                       <p className="text-emerald-300 font-bold">Command Center</p>
-                      <p className="text-gray-400 text-sm mt-1">Click "Claim Rewards" above to collect resources!</p>
+                      <p className="text-gray-400 text-sm mt-1">Click &quot;Claim Rewards&quot; above to collect resources!</p>
                     </div>
                   ) : selectedTile.discovered ? (
                     <>
