@@ -121,6 +121,20 @@ export default function CashoutPage() {
 
       if (userError) throw userError
 
+      // Enregistrer le cashout dans la table cashouts
+      try {
+        await supabase
+          .from('cashouts')
+          .insert({
+            user_id: user.id,
+            amount: amount,
+            faucetpay_email: faucetpayEmail,
+            status: 'pending'
+          })
+      } catch (cashoutErr) {
+        console.log('Cashouts table may not exist yet')
+      }
+
       setSuccess(`Cashout of ${amount} YES ($${usdValue.toFixed(2)}) submitted! Payment will be sent to ${faucetpayEmail} within 24h.`)
       setCashoutAmount('')
       loadData()
