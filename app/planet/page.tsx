@@ -284,6 +284,7 @@ function PlanetExploreContent() {
       const messages: Record<TileType, string> = {
         unknown: '',
         empty: '💨 Empty void... nothing here.',
+        hq: '🏠 Command Center',
         energy: `⚡ Energy Vein! +${bonus.base} ${bonus.resource}`,
         crystal: `💎 Crystal Formation! +${bonus.base} ${bonus.resource}`,
         factory: `🏭 Ancient Factory! +${bonus.base} ${bonus.resource}`,
