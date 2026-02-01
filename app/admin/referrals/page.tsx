@@ -3,31 +3,48 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  ArrowLeft, RefreshCw, Users, Coins, Zap, 
-  TrendingUp, Gift, Award, Crown
+import {
+  ArrowLeft, RefreshCw, Users, Coins, Zap, Fuel, Gem,
+  TrendingUp, Gift, Award, Crown, Copy, CheckCircle,
+  ArrowDownToLine, Trophy, Clock, ChevronDown, ChevronUp,
+  Sparkles, ExternalLink, Star
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 const ADMIN_EMAILS = ['gtrust1985@gmail.com']
+
+const COMMISSION_RATES = [
+  { activity: 'Energy Clicks', rate: '5%', resource: 'Energy', icon: '⚡', color: 'text-yellow-400' },
+  { activity: 'Rare Drops', rate: '5%', resource: 'Rare', icon: '💎', color: 'text-purple-400' },
+  { activity: 'Craft / Forge', rate: '10%', resource: 'Fuel', icon: '🔥', color: 'text-orange-400' },
+  { activity: 'Shop Purchases', rate: '5%', resource: 'Rare', icon: '🛒', color: 'text-purple-400' },
+  { activity: 'Energy→Fuel Swap', rate: '10%', resource: 'Fuel', icon: '🔄', color: 'text-orange-400' },
+  { activity: 'Cashout (YES)', rate: '3%', resource: 'YES', icon: '💰', color: 'text-green-400' },
+]
 
 export default function AdminReferralsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  
+  const [adminId, setAdminId] = useState<string>('')
+
+  // Pending (claimable)
+  const [pending, setPending] = useState({ energy: 0, rare: 0, fuel: 0 })
+  // Lifetime totals
+  const [lifetime, setLifetime] = useState({ energy: 0, rare: 0, fuel: 0, yes: 0 })
+
   const [stats, setStats] = useState({
     totalReferrals: 0,
-    totalEarningsEnergy: 0,
-    totalEarningsRare: 0,
-    totalEarningsFuel: 0,
-    totalEarningsYes: 0,
-    eventPoolTotal: 0
+    eventPoolTotal: 0,
   })
-  
+
   const [referrals, setReferrals] = useState<any[]>([])
   const [commissions, setCommissions] = useState<any[]>([])
+  const [copied, setCopied] = useState(false)
+  const [claiming, setClaiming] = useState<string | null>(null)
+  const [claimSuccess, setClaimSuccess] = useState<string | null>(null)
+  const [showRates, setShowRates] = useState(false)
 
   useEffect(() => {
     checkAdminAndLoad()
@@ -36,11 +53,11 @@ export default function AdminReferralsPage() {
   const checkAdminAndLoad = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      
       if (!session) { router.push('/login'); return }
       if (!ADMIN_EMAILS.includes(session.user.email || '')) { router.push('/dashboard'); return }
 
       setIsAdmin(true)
+      setAdminId(session.user.id)
       await loadAllData(session.user.id)
     } catch (err) {
       console.error('Error:', err)
@@ -49,48 +66,59 @@ export default function AdminReferralsPage() {
     }
   }
 
-  const loadAllData = async (adminId: string) => {
+  const loadAllData = async (uid?: string) => {
+    const userId = uid || adminId
+    if (!userId) return
     setRefreshing(true)
     try {
-      // Charger mes stats de referral
-      const { data: myStats } = await supabase
+      // My user data with ref fields
+      const { data: myUser } = await supabase
         .from('users')
-        .select('total_referrals, ref_earnings_energy, ref_earnings_rare, ref_earnings_fuel, ref_earnings_yes')
-        .eq('email', ADMIN_EMAILS[0])
+        .select('*')
+        .eq('id', userId)
         .single()
 
-      // Charger mes referrals
+      if (myUser) {
+        setPending({
+          energy: myUser.ref_pending_energy || 0,
+          rare: myUser.ref_pending_rare || 0,
+          fuel: myUser.ref_pending_fuel || 0,
+        })
+        setLifetime({
+          energy: (myUser.ref_total_claimed_energy || 0) + (myUser.ref_pending_energy || 0),
+          rare: (myUser.ref_total_claimed_rare || 0) + (myUser.ref_pending_rare || 0),
+          fuel: (myUser.ref_total_claimed_fuel || 0) + (myUser.ref_pending_fuel || 0),
+          yes: myUser.ref_earnings_yes || 0,
+        })
+        setStats(s => ({ ...s, totalReferrals: myUser.total_referrals || 0 }))
+      }
+
+      // My referrals
       const { data: myReferrals } = await supabase
         .from('users')
         .select('id, username, email, created_at, total_energy_earned, total_yes_earned, total_cashout_usd')
-        .eq('referred_by', adminId)
+        .eq('referred_by', userId)
         .order('created_at', { ascending: false })
 
-      // Charger l'event pool
+      setReferrals(myReferrals || [])
+      if (myReferrals) setStats(s => ({ ...s, totalReferrals: myReferrals.length }))
+
+      // Event pool
       const { data: poolData } = await supabase
         .from('event_pool')
         .select('amount_yes')
 
       const poolTotal = poolData?.reduce((sum, p) => sum + parseFloat(p.amount_yes || 0), 0) || 0
+      setStats(s => ({ ...s, eventPoolTotal: poolTotal }))
 
-      // Charger les dernières commissions
+      // Recent commissions
       const { data: recentCommissions } = await supabase
         .from('referral_commissions')
         .select('*, users!referral_commissions_referred_id_fkey(username)')
-        .eq('referrer_id', adminId)
+        .eq('referrer_id', userId)
         .order('created_at', { ascending: false })
-        .limit(20)
+        .limit(50)
 
-      setStats({
-        totalReferrals: myStats?.total_referrals || myReferrals?.length || 0,
-        totalEarningsEnergy: myStats?.ref_earnings_energy || 0,
-        totalEarningsRare: myStats?.ref_earnings_rare || 0,
-        totalEarningsFuel: myStats?.ref_earnings_fuel || 0,
-        totalEarningsYes: myStats?.ref_earnings_yes || 0,
-        eventPoolTotal: poolTotal
-      })
-
-      setReferrals(myReferrals || [])
       setCommissions(recentCommissions || [])
 
     } catch (err) {
@@ -100,11 +128,49 @@ export default function AdminReferralsPage() {
     }
   }
 
+  const handleClaim = async (resource: 'energy' | 'rare' | 'fuel' | 'all') => {
+    if (!adminId) return
+    setClaiming(resource)
+    setClaimSuccess(null)
+
+    try {
+      const res = await fetch('/api/referrals/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: adminId, resource })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setClaimSuccess(resource)
+        if (resource === 'all' || resource === 'energy') setPending(p => ({ ...p, energy: 0 }))
+        if (resource === 'all' || resource === 'rare') setPending(p => ({ ...p, rare: 0 }))
+        if (resource === 'all' || resource === 'fuel') setPending(p => ({ ...p, fuel: 0 }))
+        setTimeout(() => {
+          setClaimSuccess(null)
+          loadAllData()
+        }, 2000)
+      }
+    } catch (err) {
+      console.error('Claim error:', err)
+    } finally {
+      setClaiming(null)
+    }
+  }
+
+  const copyRefLink = () => {
+    navigator.clipboard.writeText('https://yieldverse.io/register')
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   const formatNumber = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
-    return num.toLocaleString()
+    return Math.floor(num).toLocaleString()
   }
+
+  const totalPending = pending.energy + pending.rare + pending.fuel
 
   if (loading) {
     return (
@@ -120,78 +186,233 @@ export default function AdminReferralsPage() {
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
       <nav className="bg-gray-800/80 backdrop-blur border-b border-gray-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/admin" className="p-2 hover:bg-gray-700 rounded-lg">
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div className="flex items-center gap-2">
               <Crown className="w-6 h-6 text-yellow-400" />
-              <span className="text-xl font-bold">Alpha Referrals</span>
+              <span className="text-xl font-bold">Alpha Ref Panel</span>
+              <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">ADMIN ONLY</span>
             </div>
           </div>
-          <button 
-            onClick={() => checkAdminAndLoad()}
+          <button
+            onClick={() => loadAllData()}
             disabled={refreshing}
-            className="p-2 hover:bg-gray-700 rounded-lg"
+            className="flex items-center gap-2 px-3 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm"
           >
-            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border border-purple-500/30 rounded-xl p-4">
-            <Users className="w-6 h-6 text-purple-400 mb-2" />
-            <p className="text-2xl font-bold">{stats.totalReferrals}</p>
-            <p className="text-sm text-gray-400">Total Referrals</p>
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+
+        {/* ═══ ALPHA REF LINK ═══ */}
+        <div className="bg-gradient-to-r from-cyan-900/30 to-purple-900/30 border border-cyan-500/30 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <ExternalLink className="w-5 h-5 text-cyan-400" />
+            <h2 className="font-bold">Alpha Registration Link</h2>
+            <span className="text-xs text-gray-500">(All signups → your ref)</span>
           </div>
-          
-          <div className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border border-yellow-500/30 rounded-xl p-4">
-            <Zap className="w-6 h-6 text-yellow-400 mb-2" />
-            <p className="text-2xl font-bold text-yellow-400">{formatNumber(stats.totalEarningsEnergy)}</p>
-            <p className="text-sm text-gray-400">Energy Earned</p>
-          </div>
-          
-          <div className="bg-gradient-to-br from-orange-900/30 to-red-900/30 border border-orange-500/30 rounded-xl p-4">
-            <Gift className="w-6 h-6 text-orange-400 mb-2" />
-            <p className="text-2xl font-bold text-orange-400">{formatNumber(stats.totalEarningsFuel)}</p>
-            <p className="text-sm text-gray-400">Fuel Earned</p>
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-900/30 to-cyan-900/30 border border-green-500/30 rounded-xl p-4">
-            <Coins className="w-6 h-6 text-green-400 mb-2" />
-            <p className="text-2xl font-bold text-green-400">{formatNumber(stats.totalEarningsYes)}</p>
-            <p className="text-sm text-gray-400">YES Earned</p>
+          <div className="flex gap-2">
+            <div className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 truncate font-mono">
+              https://yieldverse.io/register
+            </div>
+            <button
+              onClick={copyRefLink}
+              className={`px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${
+                copied ? 'bg-green-500 text-white' : 'bg-cyan-600 hover:bg-cyan-700 text-white'
+              }`}
+            >
+              {copied ? <><CheckCircle className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy</>}
+            </button>
           </div>
         </div>
 
-        {/* Event Pool */}
-        <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl p-6 mb-8">
+        {/* ═══ PENDING EARNINGS — CLAIM ZONE ═══ */}
+        <div className="bg-gradient-to-br from-yellow-900/20 via-orange-900/20 to-red-900/20 border-2 border-yellow-500/40 rounded-2xl p-6 relative overflow-hidden">
+          {totalPending > 0 && (
+            <div className="absolute top-3 right-3">
+              <Sparkles className="w-6 h-6 text-yellow-400 animate-pulse" />
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 mb-1">
+            <Gift className="w-6 h-6 text-yellow-400" />
+            <h2 className="text-xl font-bold text-yellow-400">Pending Earnings</h2>
+          </div>
+          <p className="text-gray-500 text-xs mb-5">Commission from referral activity — claim when you want</p>
+
+          {/* 3 cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+            {/* Energy */}
+            <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-5 h-5 text-yellow-400" />
+                <span className="text-sm text-gray-400">Energy</span>
+              </div>
+              <p className={`text-2xl font-bold text-yellow-400 mb-3 ${pending.energy > 0 ? 'animate-pulse' : ''}`}>
+                {formatNumber(pending.energy)}
+              </p>
+              <button
+                onClick={() => handleClaim('energy')}
+                disabled={pending.energy === 0 || claiming !== null}
+                className={`w-full py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1
+                  ${pending.energy > 0 ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+              >
+                {claiming === 'energy' ? <RefreshCw className="w-4 h-4 animate-spin" />
+                  : claimSuccess === 'energy' ? <><CheckCircle className="w-4 h-4" /> Claimed!</>
+                  : <><ArrowDownToLine className="w-4 h-4" /> Claim ⚡</>}
+              </button>
+            </div>
+
+            {/* Rare */}
+            <div className="bg-black/30 border border-purple-500/20 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Gem className="w-5 h-5 text-purple-400" />
+                <span className="text-sm text-gray-400">Rare</span>
+              </div>
+              <p className={`text-2xl font-bold text-purple-400 mb-3 ${pending.rare > 0 ? 'animate-pulse' : ''}`}>
+                {formatNumber(pending.rare)}
+              </p>
+              <button
+                onClick={() => handleClaim('rare')}
+                disabled={pending.rare === 0 || claiming !== null}
+                className={`w-full py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1
+                  ${pending.rare > 0 ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+              >
+                {claiming === 'rare' ? <RefreshCw className="w-4 h-4 animate-spin" />
+                  : claimSuccess === 'rare' ? <><CheckCircle className="w-4 h-4" /> Claimed!</>
+                  : <><ArrowDownToLine className="w-4 h-4" /> Claim 💎</>}
+              </button>
+            </div>
+
+            {/* Fuel */}
+            <div className="bg-black/30 border border-orange-500/20 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Fuel className="w-5 h-5 text-orange-400" />
+                <span className="text-sm text-gray-400">Fuel</span>
+              </div>
+              <p className={`text-2xl font-bold text-orange-400 mb-3 ${pending.fuel > 0 ? 'animate-pulse' : ''}`}>
+                {formatNumber(pending.fuel)}
+              </p>
+              <button
+                onClick={() => handleClaim('fuel')}
+                disabled={pending.fuel === 0 || claiming !== null}
+                className={`w-full py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1
+                  ${pending.fuel > 0 ? 'bg-orange-500 hover:bg-orange-600 text-black' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+              >
+                {claiming === 'fuel' ? <RefreshCw className="w-4 h-4 animate-spin" />
+                  : claimSuccess === 'fuel' ? <><CheckCircle className="w-4 h-4" /> Claimed!</>
+                  : <><ArrowDownToLine className="w-4 h-4" /> Claim 🔥</>}
+              </button>
+            </div>
+          </div>
+
+          {/* CLAIM ALL */}
+          <button
+            onClick={() => handleClaim('all')}
+            disabled={totalPending === 0 || claiming !== null}
+            className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2
+              ${totalPending > 0
+                ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 hover:from-yellow-600 hover:via-orange-600 hover:to-red-600 text-black shadow-lg shadow-orange-500/20'
+                : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+          >
+            {claiming === 'all' ? <RefreshCw className="w-5 h-5 animate-spin" />
+              : claimSuccess === 'all' ? <><CheckCircle className="w-5 h-5" /> All Claimed! 🎉</>
+              : <><Trophy className="w-5 h-5" /> CLAIM ALL ({formatNumber(totalPending)} total)</>}
+          </button>
+        </div>
+
+        {/* ═══ LIFETIME STATS ═══ */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-gray-800 border border-purple-500/30 rounded-xl p-4 text-center">
+            <Users className="w-5 h-5 mx-auto mb-2 text-purple-400" />
+            <p className="text-2xl font-bold">{stats.totalReferrals}</p>
+            <p className="text-xs text-gray-500">Referrals</p>
+          </div>
+          <div className="bg-gray-800 border border-yellow-500/20 rounded-xl p-4 text-center">
+            <Zap className="w-5 h-5 mx-auto mb-2 text-yellow-400" />
+            <p className="text-2xl font-bold text-yellow-400">{formatNumber(lifetime.energy)}</p>
+            <p className="text-xs text-gray-500">Lifetime ⚡</p>
+          </div>
+          <div className="bg-gray-800 border border-purple-500/20 rounded-xl p-4 text-center">
+            <Gem className="w-5 h-5 mx-auto mb-2 text-purple-400" />
+            <p className="text-2xl font-bold text-purple-400">{formatNumber(lifetime.rare)}</p>
+            <p className="text-xs text-gray-500">Lifetime 💎</p>
+          </div>
+          <div className="bg-gray-800 border border-orange-500/20 rounded-xl p-4 text-center">
+            <Fuel className="w-5 h-5 mx-auto mb-2 text-orange-400" />
+            <p className="text-2xl font-bold text-orange-400">{formatNumber(lifetime.fuel)}</p>
+            <p className="text-xs text-gray-500">Lifetime 🔥</p>
+          </div>
+          <div className="bg-gray-800 border border-green-500/20 rounded-xl p-4 text-center">
+            <Coins className="w-5 h-5 mx-auto mb-2 text-green-400" />
+            <p className="text-2xl font-bold text-green-400">{formatNumber(lifetime.yes)}</p>
+            <p className="text-xs text-gray-500">Lifetime YES</p>
+          </div>
+        </div>
+
+        {/* ═══ EVENT POOL ═══ */}
+        <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-2">
             <Award className="w-6 h-6 text-cyan-400" />
-            <h2 className="text-xl font-bold">Event Pool</h2>
+            <h2 className="text-lg font-bold">Event Pool</h2>
           </div>
           <p className="text-3xl font-bold text-cyan-400">{formatNumber(stats.eventPoolTotal)} YES</p>
-          <p className="text-sm text-gray-400 mt-1">2% de chaque cashout • Pour events spéciaux</p>
+          <p className="text-sm text-gray-500 mt-1">2% de chaque cashout • Pour events spéciaux en Beta</p>
+        </div>
+
+        {/* ═══ COMMISSION RATES ═══ */}
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden">
+          <button
+            onClick={() => setShowRates(!showRates)}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-700/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-green-400" />
+              <span className="font-bold">Commission Rates</span>
+            </div>
+            {showRates ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </button>
+          {showRates && (
+            <div className="px-4 pb-4">
+              <div className="space-y-2">
+                {COMMISSION_RATES.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between bg-gray-900 rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{r.icon}</span>
+                      <span className="text-sm text-gray-300">{r.activity}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm font-bold ${r.color}`}>{r.rate}</span>
+                      <span className="text-xs text-gray-500">{r.resource}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-gray-600 text-xs mt-3 text-center">
+                Commissions s&apos;accumulent quand les filleuls jouent à Energy Empire
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          
-          {/* Referrals List */}
+          {/* ═══ MY REFERRALS ═══ */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-purple-400" />
+              <Star className="w-5 h-5 text-cyan-400" />
               My Referrals ({referrals.length})
             </h3>
-            
+
             {referrals.length === 0 ? (
               <p className="text-gray-500 text-center py-8">No referrals yet</p>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-96 overflow-y-auto">
                 {referrals.map((ref) => (
                   <div key={ref.id} className="flex items-center justify-between bg-gray-900 rounded-lg p-3">
                     <div>
@@ -209,17 +430,26 @@ export default function AdminReferralsPage() {
             )}
           </div>
 
-          {/* Recent Commissions */}
+          {/* ═══ COMMISSION LOG ═══ */}
           <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-green-400" />
-              Recent Commissions
+              Commission Log
+              {commissions.length > 0 && (
+                <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+                  {commissions.length}
+                </span>
+              )}
             </h3>
-            
+
             {commissions.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No commissions yet</p>
+              <div className="text-center py-8">
+                <Clock className="w-10 h-10 mx-auto mb-3 text-gray-600" />
+                <p className="text-gray-500">No commissions yet</p>
+                <p className="text-gray-600 text-xs mt-1">They&apos;ll appear as referrals play</p>
+              </div>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-96 overflow-y-auto">
                 {commissions.map((com) => (
                   <div key={com.id} className="flex items-center justify-between bg-gray-900 rounded-lg p-3">
                     <div>
@@ -229,9 +459,9 @@ export default function AdminReferralsPage() {
                     <div className="text-right">
                       <p className={`font-bold ${
                         com.resource_type === 'energy' ? 'text-yellow-400' :
+                        com.resource_type === 'rare' ? 'text-purple-400' :
                         com.resource_type === 'fuel' ? 'text-orange-400' :
-                        com.resource_type === 'yes' ? 'text-green-400' :
-                        'text-purple-400'
+                        'text-green-400'
                       }`}>
                         +{formatNumber(com.amount)}
                       </p>
@@ -245,12 +475,13 @@ export default function AdminReferralsPage() {
         </div>
 
         {/* Info */}
-        <div className="mt-8 bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
+        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
           <p className="text-yellow-400 text-sm">
-            <strong>Alpha Referral System:</strong> Tu reçois 10% de chaque Claim (Energy, Rare, Fuel) et 3% de chaque Cashout (YES). 
-            2% des cashouts vont dans l'Event Pool pour des événements spéciaux.
+            <strong>🤫 Alpha Mode:</strong> Toutes les inscriptions tombent sous ton ref. Les commissions s&apos;accumulent automatiquement quand tes filleuls jouent à Energy Empire. 
+            En Beta, le Referral Hub sera ouvert à tous les joueurs.
           </p>
         </div>
+
       </div>
     </div>
   )

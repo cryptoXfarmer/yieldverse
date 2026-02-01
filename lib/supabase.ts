@@ -16,6 +16,20 @@ export type User = {
   last_daily_claim: string | null
   created_at: string
   updated_at: string
+  // Referral fields
+  referred_by?: string | null
+  referral_code?: string
+  total_referrals?: number
+  ref_pending_energy?: number
+  ref_pending_rare?: number
+  ref_pending_fuel?: number
+  ref_total_claimed_energy?: number
+  ref_total_claimed_rare?: number
+  ref_total_claimed_fuel?: number
+  ref_earnings_energy?: number
+  ref_earnings_rare?: number
+  ref_earnings_fuel?: number
+  ref_earnings_yes?: number
 }
 
 export type Wallet = {
