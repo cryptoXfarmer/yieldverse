@@ -402,11 +402,18 @@ export default function DashboardPage() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {planets.slice(0, 4).map((planet) => (
-                  <div key={planet.id} className="bg-black/30 rounded-xl p-4 text-center">
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500" />
+                  <Link 
+                    key={planet.id} 
+                    href={`/planet?id=${planet.id}`}
+                    className="bg-black/30 rounded-xl p-4 text-center hover:bg-black/50 transition-colors group"
+                  >
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 group-hover:scale-110 transition-transform" />
                     <p className="font-bold text-sm truncate">{planet.name}</p>
-                    <p className="text-xs text-gray-500">{planet.rarity}</p>
-                  </div>
+                    <p className="text-xs text-gray-500 mb-2">{planet.rarity}</p>
+                    <span className="text-xs text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      🔍 Explore →
+                    </span>
+                  </Link>
                 ))}
               </div>
             )}
