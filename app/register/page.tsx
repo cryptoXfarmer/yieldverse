@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Globe, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react'
+import { Globe, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle, Gift } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+
+// ALPHA: Tous les nouveaux joueurs sont sous la tutelle du Founder
+const ALPHA_FOUNDER_EMAIL = 'gtrust1985@gmail.com'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -22,6 +25,10 @@ export default function RegisterPage() {
 
   const generatePilotId = () => {
     return `Pilot-${Math.floor(1000 + Math.random() * 9000)}`
+  }
+
+  const generateReferralCode = () => {
+    return `YV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
   }
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -54,8 +61,18 @@ export default function RegisterPage() {
       }
 
       if (authData.user) {
-        // Create user profile
+        // ALPHA: Trouver le Founder pour l'assigner comme referrer
+        const { data: founderData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', ALPHA_FOUNDER_EMAIL)
+          .single()
+
+        const founderId = founderData?.id || null
+
+        // Create user profile avec referral
         const pilotId = generatePilotId()
+        const refCode = generateReferralCode()
         
         const { error: profileError } = await supabase
           .from('users')
@@ -66,12 +83,18 @@ export default function RegisterPage() {
             total_energy_earned: 0,
             total_fuel_earned: 0,
             total_yes_earned: 0,
-            total_cashout_usd: 0
+            total_cashout_usd: 0,
+            referred_by: founderId, // ALPHA: Auto-référé par le Founder
+            referral_code: refCode
           })
 
         if (profileError) {
           console.error('Profile error:', profileError)
-          // User might already exist, try to continue
+        }
+
+        // Incrémenter le compteur de referrals du Founder
+        if (founderId) {
+          await supabase.rpc('increment_referrals', { user_id: founderId })
         }
 
         // Create wallet
@@ -81,7 +104,8 @@ export default function RegisterPage() {
             user_id: authData.user.id,
             energy: 0,
             fuel: 0,
-            yes_tokens: 0
+            yes_tokens: 0,
+            rare_resources: 0
           })
 
         if (walletError) {
@@ -164,6 +188,15 @@ export default function RegisterPage() {
             YIELDVERSE
           </span>
         </Link>
+
+        {/* Alpha Badge */}
+        <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/50 rounded-xl p-3 mb-6 text-center">
+          <div className="flex items-center justify-center gap-2 text-yellow-400">
+            <Gift className="w-5 h-5" />
+            <span className="font-bold">ALPHA ACCESS</span>
+          </div>
+          <p className="text-xs text-yellow-200/70 mt-1">Join the first wave of Pilots!</p>
+        </div>
 
         {/* Form */}
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8">

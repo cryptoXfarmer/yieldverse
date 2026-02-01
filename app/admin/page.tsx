@@ -302,10 +302,14 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Links */}
-        <div className="mt-8 grid grid-cols-3 gap-4">
+        <div className="mt-8 grid grid-cols-4 gap-4">
+          <Link href="/admin/referrals" className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 hover:from-purple-900/50 hover:to-pink-900/50 border border-purple-500/30 rounded-xl p-4 text-center transition-colors">
+            <Users className="w-8 h-8 mx-auto mb-2 text-purple-400" />
+            <p className="font-medium">Referrals</p>
+          </Link>
           <a href="https://faucetpay.io/page/user-admin" target="_blank" className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl p-4 text-center transition-colors">
             <Wallet className="w-8 h-8 mx-auto mb-2 text-green-400" />
-            <p className="font-medium">FaucetPay Admin</p>
+            <p className="font-medium">FaucetPay</p>
           </a>
           <a href="https://supabase.com/dashboard" target="_blank" className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl p-4 text-center transition-colors">
             <BarChart3 className="w-8 h-8 mx-auto mb-2 text-cyan-400" />
