@@ -10,7 +10,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import HexGrid, { Tile, TileType } from '@/components/HexGrid'
 
-const EXPLORE_COST = 100 // Fuel pour explorer
+const EXPLORE_COST = 25 // Fuel pour explorer
 const CLAIM_INTERVAL = 6 * 60 * 60 * 1000 // 6 heures en millisecondes
 
 const TILE_PROBABILITIES: { type: TileType; weight: number }[] = [
