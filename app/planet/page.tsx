@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -29,7 +29,7 @@ const TILE_BONUSES: Record<TileType, { base: number; perLevel: number; resource:
   artifact: { base: 25, perLevel: 15, resource: 'YES bonus' },
 }
 
-export default function PlanetExplorePage() {
+function PlanetExploreContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planetId = searchParams.get('id')
@@ -454,5 +454,17 @@ export default function PlanetExplorePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PlanetExplorePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 animate-spin text-cyan-400" />
+      </div>
+    }>
+      <PlanetExploreContent />
+    </Suspense>
   )
 }

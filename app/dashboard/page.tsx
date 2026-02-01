@@ -484,11 +484,11 @@ export default function DashboardPage() {
             </div>
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
               <p className="text-gray-400 text-sm mb-1">Cashout Rate</p>
-              <p className="text-lg font-bold">1000 YES = $1 LTC</p>
+              <p className="text-lg font-bold">1000 YES = 0.001 LTC</p>
             </div>
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
               <p className="text-gray-400 text-sm mb-1">Min Cashout</p>
-              <p className="text-lg font-bold">100 YES ($0.10)</p>
+              <p className="text-lg font-bold">100 YES (0.0001 LTC)</p>
             </div>
           </div>
 
