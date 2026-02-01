@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, amount_usd } = await request.json()
+    const { email, amount_yes } = await request.json()
 
-    if (!email || !amount_usd) {
+    if (!email || !amount_yes) {
       return NextResponse.json({ success: false, error: 'Missing email or amount' }, { status: 400 })
     }
 
@@ -13,10 +13,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'FaucetPay API not configured' }, { status: 500 })
     }
 
-    // Convertir USD en satoshis LTC
-    // Prix LTC approximatif (tu peux ajuster ou fetch le prix réel)
-    const LTC_PRICE_USD = 120 // ~$120 par LTC
-    const amountSatoshis = Math.floor((amount_usd / LTC_PRICE_USD) * 100000000)
+    // Taux FIXE : 1000 YES = 0.001 LTC = 100000 satoshis
+    // Donc : 1 YES = 100 satoshis
+    const SATOSHIS_PER_YES = 100
+    const amountSatoshis = amount_yes * SATOSHIS_PER_YES
 
     // Minimum FaucetPay
     if (amountSatoshis < 1) {
@@ -42,9 +42,10 @@ export async function POST(request: NextRequest) {
     if (data.status === 200) {
       return NextResponse.json({
         success: true,
-        message: `Sent ${amountSatoshis} satoshis to ${email}`,
+        message: `Sent ${(amountSatoshis / 100000000).toFixed(8)} LTC to ${email}`,
         payout_id: data.payout_id,
-        balance: data.balance
+        balance: data.balance,
+        amount_ltc: (amountSatoshis / 100000000).toFixed(8)
       })
     } else {
       return NextResponse.json({ 

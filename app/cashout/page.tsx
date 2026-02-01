@@ -78,12 +78,13 @@ export default function CashoutPage() {
     setProcessing(true)
     try {
       const usdValue = amount * YES_TO_USD
+      const ltcValue = (amount * 100 / 100000000).toFixed(8) // 1 YES = 100 satoshis
 
       // 1. Envoyer le paiement INSTANT via API FaucetPay
       const payResponse = await fetch('/api/faucetpay/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: faucetpayEmail, amount_usd: usdValue })
+        body: JSON.stringify({ email: faucetpayEmail, amount_yes: amount })
       })
       const payData = await payResponse.json()
       if (!payData.success) throw new Error(payData.error || 'Payment failed')
@@ -112,7 +113,7 @@ export default function CashoutPage() {
         // Table might not exist, ignore
       }
 
-      setSuccess(`✅ INSTANT PAYMENT SENT! ${amount} YES ($${usdValue.toFixed(2)}) sent to ${faucetpayEmail}`)
+      setSuccess(`✅ INSTANT PAYMENT SENT! ${amount} YES (${ltcValue} LTC) sent to ${faucetpayEmail}`)
       setCashoutAmount('')
       loadData()
       loadFaucetPayBalance()
@@ -178,7 +179,11 @@ export default function CashoutPage() {
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Amount (YES)</label>
                 <input type="number" value={cashoutAmount} onChange={(e) => setCashoutAmount(e.target.value)} placeholder={`Min: ${MIN_CASHOUT} YES`} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400" />
-                {cashoutAmount && <p className="text-sm text-gray-400 mt-2">= ${(parseInt(cashoutAmount) * YES_TO_USD).toFixed(2)} USD</p>}
+                {cashoutAmount && (
+                  <p className="text-sm text-green-400 mt-2 font-bold">
+                    = {(parseInt(cashoutAmount) * 100 / 100000000).toFixed(8)} LTC
+                  </p>
+                )}
               </div>
 
               <div>
@@ -187,7 +192,7 @@ export default function CashoutPage() {
               </div>
 
               <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-                <p className="text-green-400 text-sm"><strong>⚡ Instant:</strong> 1000 YES = $1 LTC • Min: {MIN_CASHOUT} YES</p>
+                <p className="text-green-400 text-sm"><strong>⚡ Fixed Rate:</strong> 1000 YES = 0.001 LTC • 100 YES = 0.0001 LTC • Min: {MIN_CASHOUT} YES</p>
               </div>
 
               <button onClick={handleInstantCashout} disabled={processing || !cashoutAmount || parseInt(cashoutAmount) < MIN_CASHOUT || !faucetpayEmail} className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
