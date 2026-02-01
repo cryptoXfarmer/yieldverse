@@ -88,17 +88,18 @@ export default function DashboardPage() {
     try {
       const news: string[] = []
       
-      // Get recent cashouts
+      // Get recent cashouts - PRIORITY for credibility!
       const { data: cashouts } = await supabase
         .from('cashouts')
         .select('amount, faucetpay_email, created_at, status')
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
-        .limit(5)
+        .limit(10)
       
       cashouts?.forEach(c => {
         const email = c.faucetpay_email.split('@')[0].slice(0, 4) + '***'
-        news.push(`💰 ${email} withdrew ${c.amount} YES ($${(c.amount * 0.001).toFixed(2)})`)
+        const ltcAmount = (c.amount * 100 / 100000000).toFixed(8)
+        news.push(`💰 ${email} cashed out ${c.amount} YES (${ltcAmount} LTC)!`)
       })
 
       // Get recent users
