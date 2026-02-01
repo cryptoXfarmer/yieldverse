@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'YieldVerse - Metaverse P2E Gaming Ecosystem',
-  description: 'Play games, earn YES tokens, cashout real crypto. The future of Play-to-Earn.',
+  title: 'YieldVerse - Metaverse P2E',
+  description: 'Play games, earn YES tokens',
 }
 
 export default function RootLayout({
