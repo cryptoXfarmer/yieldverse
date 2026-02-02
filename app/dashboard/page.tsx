@@ -298,14 +298,16 @@ export default function DashboardPage() {
         .eq('id', session.user.id)
 
       // Log the conversion for referral commissions
-      await supabase.from('referral_commissions').insert({
-        referrer_id: user.referred_by || user.id,
-        referred_id: user.id,
-        activity_type: 'fuel_to_yes',
-        amount: amount,
-        commission_rate: 0.05,
-        commission_amount: Math.floor(amount * 0.05)
-      }).catch(() => {}) // Silent fail if no referrer
+      try {
+        await supabase.from('referral_commissions').insert({
+          referrer_id: user.referred_by || user.id,
+          referred_id: user.id,
+          activity_type: 'fuel_to_yes',
+          amount: amount,
+          commission_rate: 0.05,
+          commission_amount: Math.floor(amount * 0.05)
+        })
+      } catch (_) {} // Silent fail if no referrer
 
       setConvertSuccess(`Converted ${fuelNeeded} Fuel → ${amount} YES!`)
       setConvertAmount('')
