@@ -5,13 +5,27 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, Globe, Zap, Diamond, Factory, Star, 
-  Compass, RefreshCw, Info, ChevronUp, Coins, Clock, Gift, Home
+  Compass, RefreshCw, Info, ChevronUp, Coins, Clock, Gift, Home,
+  Radar, Timer, Package
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import HexGrid, { Tile, TileType } from '@/components/HexGrid'
+import HexGrid, { Tile, TileType, DroneState } from '@/components/HexGrid'
 
 const EXPLORE_COST = 25 // Fuel pour explorer
 const CLAIM_INTERVAL = 6 * 60 * 60 * 1000 // 6 heures en millisecondes
+const DRONE_COST_RARE = 50
+const DRONE_COST_FUEL = 10
+const DRONE_MIN_HOURS = 4
+const DRONE_MAX_HOURS = 8
+
+// Drone scan results — slightly better than explore (reward for patience)
+const DRONE_PROBABILITIES: { type: TileType; weight: number }[] = [
+  { type: 'empty', weight: 30 },
+  { type: 'energy', weight: 32 },
+  { type: 'crystal', weight: 20 },
+  { type: 'factory', weight: 13 },
+  { type: 'artifact', weight: 5 },
+]
 
 const TILE_PROBABILITIES: { type: TileType; weight: number }[] = [
   { type: 'empty', weight: 35 },
@@ -48,6 +62,13 @@ function PlanetExploreContent() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [nextClaimTime, setNextClaimTime] = useState<number>(0)
   const [timeLeft, setTimeLeft] = useState<string>('')
+  
+  // Drone state
+  const [droneData, setDroneData] = useState<any>(null) // DB row
+  const [droneState, setDroneState] = useState<DroneState | null>(null) // visual state
+  const [droneTimeLeft, setDroneTimeLeft] = useState<string>('')
+  const [deployingDrone, setDeployingDrone] = useState(false)
+  const [collectingDrone, setCollectingDrone] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -70,6 +91,35 @@ function PlanetExploreContent() {
     }, 1000)
     return () => clearInterval(interval)
   }, [nextClaimTime])
+
+  // Drone scan timer
+  useEffect(() => {
+    if (!droneData || droneData.status !== 'scanning') {
+      setDroneTimeLeft('')
+      return
+    }
+    
+    const interval = setInterval(() => {
+      const started = new Date(droneData.scan_started_at).getTime()
+      const duration = droneData.scan_duration_ms
+      const endTime = started + duration
+      const remaining = endTime - Date.now()
+
+      if (remaining <= 0) {
+        setDroneTimeLeft('Ready!')
+        // Auto-update to found status
+        setDroneData((prev: any) => prev ? { ...prev, status: 'found' } : prev)
+        setDroneState(prev => prev ? { ...prev, status: 'found' } : prev)
+      } else {
+        const hours = Math.floor(remaining / (60 * 60 * 1000))
+        const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000))
+        const seconds = Math.floor((remaining % (60 * 1000)) / 1000)
+        setDroneTimeLeft(`${hours}h ${minutes}m ${seconds}s`)
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [droneData])
 
   const loadData = async () => {
     try {
@@ -112,6 +162,9 @@ function PlanetExploreContent() {
         // Calculer le prochain claim
         const lastClaim = planetData.last_claim_at ? new Date(planetData.last_claim_at).getTime() : 0
         setNextClaimTime(lastClaim + CLAIM_INTERVAL)
+
+        // Load active drone for this planet
+        await loadDrone(planetData.id, session.user.id)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -238,6 +291,229 @@ function PlanetExploreContent() {
     }
     return 'empty'
   }
+
+  const rollDroneTileType = (): TileType => {
+    const total = DRONE_PROBABILITIES.reduce((sum, p) => sum + p.weight, 0)
+    let random = Math.random() * total
+    for (const prob of DRONE_PROBABILITIES) {
+      random -= prob.weight
+      if (random <= 0) return prob.type
+    }
+    return 'empty'
+  }
+
+  // ═══ DRONE FUNCTIONS ═══
+
+  const loadDrone = async (planetId: string, userId: string) => {
+    const { data: drone } = await supabase
+      .from('drones')
+      .select('*')
+      .eq('planet_id', planetId)
+      .eq('user_id', userId)
+      .in('status', ['scanning', 'found'])
+      .limit(1)
+      .maybeSingle()
+
+    if (drone) {
+      // Check if scan is complete
+      const started = new Date(drone.scan_started_at).getTime()
+      const endTime = started + drone.scan_duration_ms
+      
+      if (drone.status === 'scanning' && Date.now() >= endTime) {
+        // Roll result now (was pending)
+        const resultType = rollDroneTileType()
+        await supabase.from('drones').update({ 
+          status: 'found', 
+          result_type: resultType 
+        }).eq('id', drone.id)
+        
+        drone.status = 'found'
+        drone.result_type = resultType
+      }
+
+      setDroneData(drone)
+
+      // Find target tile coordinates
+      const targetTile = tiles.length > 0 
+        ? tiles.find(t => t.id === drone.tile_id)
+        : null
+
+      setDroneState({
+        status: drone.status as any,
+        targetTileId: drone.tile_id,
+        targetQ: targetTile?.q,
+        targetR: targetTile?.r,
+      })
+    }
+  }
+
+  // Update drone state when tiles load (for coordinates)
+  useEffect(() => {
+    if (droneData && tiles.length > 0 && droneData.tile_id) {
+      const targetTile = tiles.find(t => t.id === droneData.tile_id)
+      if (targetTile) {
+        setDroneState(prev => prev ? {
+          ...prev,
+          targetQ: targetTile.q,
+          targetR: targetTile.r,
+        } : null)
+      }
+    }
+  }, [tiles, droneData])
+
+  const deployDrone = async (tile: Tile) => {
+    if (!user || !wallet || !planet || deployingDrone) return
+    if (tile.type !== 'empty' || !tile.discovered) return
+    if (droneData && (droneData.status === 'scanning' || droneData.status === 'found')) {
+      setMessage({ type: 'error', text: 'Drone already deployed! Collect results first.' })
+      return
+    }
+
+    // Check cost
+    const { data: walletNow } = await supabase
+      .from('wallets')
+      .select('rare_resources, fuel')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!walletNow || (walletNow.rare_resources || 0) < DRONE_COST_RARE || walletNow.fuel < DRONE_COST_FUEL) {
+      setMessage({ type: 'error', text: `Need ${DRONE_COST_RARE} Rare + ${DRONE_COST_FUEL} Fuel to deploy drone!` })
+      return
+    }
+
+    setDeployingDrone(true)
+    setMessage(null)
+
+    try {
+      // Deduct cost
+      await supabase.from('wallets').update({
+        rare_resources: (walletNow.rare_resources || 0) - DRONE_COST_RARE,
+        fuel: walletNow.fuel - DRONE_COST_FUEL,
+      }).eq('user_id', user.id)
+
+      setWallet((prev: any) => ({
+        ...prev,
+        rare_resources: (prev.rare_resources || 0) - DRONE_COST_RARE,
+        fuel: prev.fuel - DRONE_COST_FUEL,
+      }))
+
+      // Random duration 4-8 hours
+      const hours = DRONE_MIN_HOURS + Math.random() * (DRONE_MAX_HOURS - DRONE_MIN_HOURS)
+      const durationMs = Math.floor(hours * 60 * 60 * 1000)
+
+      // Create drone record
+      const { data: newDrone, error } = await supabase.from('drones').insert({
+        user_id: user.id,
+        planet_id: planet.id,
+        tile_id: tile.id,
+        status: 'scanning',
+        scan_started_at: new Date().toISOString(),
+        scan_duration_ms: durationMs,
+      }).select().single()
+
+      if (error) throw error
+
+      setDroneData(newDrone)
+
+      // Animate: deploying → scanning
+      setDroneState({
+        status: 'deploying',
+        targetTileId: tile.id,
+        targetQ: tile.q,
+        targetR: tile.r,
+      })
+
+      // After deploy animation, switch to scanning
+      setTimeout(() => {
+        setDroneState({
+          status: 'scanning',
+          targetTileId: tile.id,
+          targetQ: tile.q,
+          targetR: tile.r,
+        })
+      }, 1600)
+
+      const h = Math.floor(hours)
+      const m = Math.floor((hours - h) * 60)
+      setMessage({ type: 'success', text: `🛸 Drone deployed! Scanning for ~${h}h ${m}m...` })
+
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message })
+    } finally {
+      setDeployingDrone(false)
+    }
+  }
+
+  const collectDrone = async () => {
+    if (!droneData || !user || !planet || collectingDrone) return
+    if (droneData.status !== 'found') return
+
+    setCollectingDrone(true)
+    setMessage(null)
+
+    try {
+      const resultType = droneData.result_type as TileType
+      const tile = tiles.find(t => t.id === droneData.tile_id)
+      if (!tile) throw new Error('Tile not found')
+
+      // If non-empty result, update the tile
+      if (resultType && resultType !== 'empty') {
+        const bonus = TILE_BONUSES[resultType]
+        await supabase.from('tiles').update({
+          type: resultType,
+          level: 1,
+          bonus: bonus.base,
+        }).eq('id', tile.id)
+
+        // Update local tiles
+        setTiles(prev => prev.map(t => 
+          t.id === tile.id 
+            ? { ...t, type: resultType, level: 1, bonus: bonus.base }
+            : t
+        ))
+        setSelectedTile(prev => 
+          prev?.id === tile.id 
+            ? { ...prev, type: resultType, level: 1, bonus: bonus.base }
+            : prev
+        )
+      }
+
+      // Mark drone as returning, then cleanup
+      await supabase.from('drones').update({ 
+        status: 'idle',
+        scan_completed_at: new Date().toISOString() 
+      }).eq('id', droneData.id)
+
+      // Animate return
+      setDroneState(prev => prev ? { ...prev, status: 'returning' } : null)
+
+      setTimeout(() => {
+        setDroneState(null)
+        setDroneData(null)
+      }, 1400)
+
+      const resultMessages: Record<string, string> = {
+        empty: '💨 Drone returned — nothing found. Better luck next time!',
+        energy: '⚡ Drone found an Energy Vein! Tile converted!',
+        crystal: '💎 Drone discovered a Crystal Formation!',
+        factory: '🏭 Drone uncovered an Ancient Factory!',
+        artifact: '⭐ INCREDIBLE! Drone found a RARE Artifact!',
+      }
+
+      setMessage({
+        type: resultType === 'empty' ? 'error' : 'success',
+        text: resultMessages[resultType] || 'Drone returned.'
+      })
+
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message })
+    } finally {
+      setCollectingDrone(false)
+    }
+  }
+
+  const hasDroneActive = droneData && (droneData.status === 'scanning' || droneData.status === 'found')
+  const isDroneReady = droneData?.status === 'found'
 
   const exploreTile = async () => {
     if (!selectedTile || selectedTile.discovered || exploring || !wallet) return
@@ -413,6 +689,7 @@ function PlanetExploreContent() {
               tiles={tiles}
               onTileClick={setSelectedTile}
               selectedTile={selectedTile}
+              drone={droneState}
             />
           </div>
 
@@ -514,7 +791,7 @@ function PlanetExploreContent() {
                         </span>
                       </div>
                       
-                      {selectedTile.type !== 'empty' && (
+                      {selectedTile.type !== 'empty' ? (
                         <>
                           <div className="flex justify-between">
                             <span className="text-gray-400">Level</span>
@@ -535,6 +812,49 @@ function PlanetExploreContent() {
                             )}
                           </button>
                         </>
+                      ) : (
+                        /* ═══ EMPTY TILE — Deploy Drone ═══ */
+                        <div className="space-y-3">
+                          {droneData?.tile_id === selectedTile.id ? (
+                            /* Drone is on THIS tile */
+                            <div className="bg-sky-900/30 border border-sky-500/30 rounded-lg p-3 text-center">
+                              <p className="text-sky-300 text-sm font-bold mb-1">🛸 Drone Scanning</p>
+                              {droneData.status === 'found' ? (
+                                <p className="text-green-400 text-sm">✨ Scan complete!</p>
+                              ) : (
+                                <p className="text-sky-200 text-xs">{droneTimeLeft || 'Calculating...'}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-3 text-center">
+                                <p className="text-gray-400 text-sm">💨 Empty void... nothing here.</p>
+                              </div>
+                              
+                              {!hasDroneActive && (
+                                <button
+                                  onClick={() => deployDrone(selectedTile)}
+                                  disabled={deployingDrone || (wallet?.rare_resources || 0) < DRONE_COST_RARE || (wallet?.fuel || 0) < DRONE_COST_FUEL}
+                                  className="w-full py-2.5 bg-gradient-to-r from-sky-600 to-blue-700 hover:brightness-110 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold flex items-center justify-center gap-2 transition-all text-sm"
+                                >
+                                  {deployingDrone ? <RefreshCw className="w-4 h-4 animate-spin" /> : (
+                                    <>🛸 Deploy Drone ({DRONE_COST_RARE} 💎 + {DRONE_COST_FUEL} 🔥)</>
+                                  )}
+                                </button>
+                              )}
+
+                              {hasDroneActive && (
+                                <p className="text-sky-400 text-xs text-center">🛸 Drone busy on another tile</p>
+                              )}
+
+                              {!hasDroneActive && ((wallet?.rare_resources || 0) < DRONE_COST_RARE || (wallet?.fuel || 0) < DRONE_COST_FUEL) && (
+                                <p className="text-yellow-400 text-xs text-center">
+                                  Need {DRONE_COST_RARE} 💎 + {DRONE_COST_FUEL} 🔥
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
                       )}
                     </>
                   ) : (
@@ -561,6 +881,60 @@ function PlanetExploreContent() {
                 <p className="text-gray-500 text-center py-8">Click a hexagon to explore</p>
               )}
             </div>
+
+            {/* ═══ DRONE STATUS PANEL ═══ */}
+            {hasDroneActive && (
+              <div className={`rounded-xl border p-5 ${isDroneReady 
+                ? 'bg-gradient-to-br from-green-900/40 to-emerald-900/30 border-green-500/40' 
+                : 'bg-gradient-to-br from-sky-900/30 to-blue-900/20 border-sky-500/30'}`}
+              >
+                <h3 className="font-bold mb-3 flex items-center gap-2">
+                  <Radar className={`w-5 h-5 ${isDroneReady ? 'text-green-400' : 'text-sky-400'}`} />
+                  Drone Scanner
+                  {isDroneReady && <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">Ready!</span>}
+                </h3>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Status</span>
+                    <span className={isDroneReady ? 'text-green-400 font-bold' : 'text-sky-300'}>
+                      {isDroneReady ? '✨ Scan Complete' : '📡 Scanning...'}
+                    </span>
+                  </div>
+
+                  {!isDroneReady && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 flex items-center gap-1"><Timer className="w-3.5 h-3.5" /> ETA</span>
+                      <span className="text-sky-300 font-mono">{droneTimeLeft || '...'}</span>
+                    </div>
+                  )}
+
+                  {/* Progress bar */}
+                  {droneData?.scan_started_at && droneData?.scan_duration_ms && (
+                    <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${isDroneReady ? 'bg-green-500' : 'bg-gradient-to-r from-sky-500 to-blue-500'}`}
+                        style={{
+                          width: `${Math.min(100, ((Date.now() - new Date(droneData.scan_started_at).getTime()) / droneData.scan_duration_ms) * 100)}%`
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {isDroneReady && (
+                  <button
+                    onClick={collectDrone}
+                    disabled={collectingDrone}
+                    className="w-full mt-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:brightness-110 rounded-lg font-bold flex items-center justify-center gap-2 transition-all animate-pulse"
+                  >
+                    {collectingDrone ? <RefreshCw className="w-4 h-4 animate-spin" /> : (
+                      <><Package className="w-5 h-5" /> Collect Drone Results!</>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Message */}
             {message && (
