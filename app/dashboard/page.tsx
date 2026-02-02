@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { 
   Globe, Zap, Fuel, Coins, DollarSign, LogOut, 
   Rocket, Star, ArrowRight, RefreshCw, User,
-  TrendingUp, Calendar, ExternalLink, Wallet, Gift, Shield
+  TrendingUp, Calendar, ExternalLink, Wallet, Gift, Shield,
+  MessageCircle, Send, X
 } from 'lucide-react'
 import { supabase, User as UserType } from '@/lib/supabase'
 
@@ -22,6 +23,12 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [faucetPayBalance, setFaucetPayBalance] = useState<number | null>(null)
   const [newsItems, setNewsItems] = useState<string[]>([])
+  
+  // SOS Support
+  const [showSOS, setShowSOS] = useState(false)
+  const [sosMessage, setSosMessage] = useState('')
+  const [sendingSOS, setSendingSOS] = useState(false)
+  const [sosSent, setSosSent] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -178,6 +185,29 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  const sendSOS = async () => {
+    if (!user || !sosMessage.trim() || sendingSOS) return
+    setSendingSOS(true)
+    try {
+      await supabase.from('support_tickets').insert({
+        user_id: user.id,
+        username: user.username,
+        email: user.email,
+        message: sosMessage.trim(),
+      })
+      setSosSent(true)
+      setSosMessage('')
+      setTimeout(() => {
+        setShowSOS(false)
+        setSosSent(false)
+      }, 2000)
+    } catch (err) {
+      console.error('SOS error:', err)
+    } finally {
+      setSendingSOS(false)
+    }
   }
 
   const formatNumber = (num: number) => {
@@ -518,6 +548,71 @@ export default function DashboardPage() {
 
         </div>
       </div>
+
+      {/* ═══ SOS FLOATING BUTTON ═══ */}
+      <button
+        onClick={() => setShowSOS(true)}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-br from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 rounded-full shadow-lg shadow-red-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+        title="Need help? Send a message!"
+      >
+        <MessageCircle className="w-6 h-6 text-white" />
+      </button>
+
+      {/* ═══ SOS MODAL ═══ */}
+      {showSOS && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Need Help?</h3>
+                  <p className="text-xs text-gray-400">Send a message to the team</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowSOS(false); setSosSent(false) }} className="p-2 hover:bg-gray-700 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              {sosSent ? (
+                <div className="text-center py-8">
+                  <div className="text-5xl mb-3">✅</div>
+                  <p className="text-green-400 font-bold text-lg">Message Sent!</p>
+                  <p className="text-gray-400 text-sm mt-1">We&apos;ll get back to you soon.</p>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    value={sosMessage}
+                    onChange={(e) => setSosMessage(e.target.value)}
+                    placeholder="Describe your issue or question..."
+                    rows={4}
+                    maxLength={500}
+                    className="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 text-sm resize-none focus:border-orange-500 focus:outline-none transition-colors placeholder-gray-500"
+                  />
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-xs text-gray-500">{sosMessage.length}/500</p>
+                    <button
+                      onClick={sendSOS}
+                      disabled={!sosMessage.trim() || sendingSOS}
+                      className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 hover:brightness-110 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-sm flex items-center gap-2 transition-all"
+                    >
+                      {sendingSOS ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      Send
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

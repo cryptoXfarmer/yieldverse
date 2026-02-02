@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   ArrowLeft, RefreshCw, Users, Coins, DollarSign, 
   Wallet, Globe, Zap, TrendingUp, Shield, CheckCircle,
-  Clock, Activity, BarChart3
+  Clock, Activity, BarChart3, MessageCircle, Eye
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -33,6 +33,7 @@ export default function AdminDashboard() {
   const [faucetPayBalance, setFaucetPayBalance] = useState<number | null>(null)
   const [recentCashouts, setRecentCashouts] = useState<any[]>([])
   const [recentUsers, setRecentUsers] = useState<any[]>([])
+  const [tickets, setTickets] = useState<any[]>([])
 
   useEffect(() => {
     checkAdminAndLoad()
@@ -142,9 +143,24 @@ export default function AdminDashboard() {
         .order('created_at', { ascending: false })
         .limit(5)
       setRecentUsers(data || [])
+
+      // Load support tickets
+      const { data: ticketData } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20)
+      setTickets(ticketData || [])
     } catch (err) {
       console.error('Error:', err)
     }
+  }
+
+  const markTicketRead = async (ticketId: string) => {
+    await supabase.from('support_tickets')
+      .update({ status: 'read' })
+      .eq('id', ticketId)
+    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'read' } : t))
   }
 
   const formatLTC = (satoshis: number) => (satoshis / 100000000).toFixed(8)
@@ -299,6 +315,60 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ═══ SUPPORT TICKETS ═══ */}
+        <div className="mt-8 bg-gray-800 rounded-xl border border-gray-700 p-6">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-3">
+            <MessageCircle className="w-6 h-6 text-orange-400" />
+            Support Tickets
+            {tickets.filter(t => t.status === 'open').length > 0 && (
+              <span className="text-xs bg-red-500 text-white px-2.5 py-1 rounded-full animate-pulse">
+                {tickets.filter(t => t.status === 'open').length} new
+              </span>
+            )}
+          </h2>
+
+          {tickets.length === 0 ? (
+            <p className="text-gray-500 text-center py-6">No tickets yet</p>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {tickets.map((ticket: any) => (
+                <div
+                  key={ticket.id}
+                  className={`border rounded-xl p-4 transition-colors ${
+                    ticket.status === 'open' 
+                      ? 'bg-orange-900/20 border-orange-500/40' 
+                      : 'bg-gray-800/50 border-gray-700'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-sm">{ticket.username}</span>
+                        <span className="text-xs text-gray-500">{ticket.email}</span>
+                        {ticket.status === 'open' && (
+                          <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full">NEW</span>
+                        )}
+                      </div>
+                      <p className="text-gray-300 text-sm">{ticket.message}</p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        {new Date(ticket.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    {ticket.status === 'open' && (
+                      <button
+                        onClick={() => markTicketRead(ticket.id)}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Read
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Quick Links */}
