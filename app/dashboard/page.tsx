@@ -30,6 +30,12 @@ export default function DashboardPage() {
   const [sendingSOS, setSendingSOS] = useState(false)
   const [sosSent, setSosSent] = useState(false)
 
+  // Fuel → YES Conversion
+  const [showConvert, setShowConvert] = useState(false)
+  const [convertAmount, setConvertAmount] = useState('')
+  const [converting, setConverting] = useState(false)
+  const [convertSuccess, setConvertSuccess] = useState('')
+
   // Event
   const [activeEvent, setActiveEvent] = useState<any>(null)
   const [eventCountdown, setEventCountdown] = useState('')
@@ -260,6 +266,64 @@ export default function DashboardPage() {
     }
   }
 
+  const handleConvertFuel = async () => {
+    const amount = parseInt(convertAmount)
+    if (!amount || amount < 1 || !wallet || !user) return
+    
+    const fuelNeeded = amount * 100
+    if (fuelNeeded > (wallet?.fuel || 0)) return
+    
+    setConverting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      // Update wallet: subtract fuel, add YES
+      const { error: walletError } = await supabase
+        .from('wallets')
+        .update({
+          fuel: (wallet.fuel || 0) - fuelNeeded,
+          yes_tokens: (wallet.yes_tokens || 0) + amount
+        })
+        .eq('user_id', session.user.id)
+
+      if (walletError) throw walletError
+
+      // Update user totals
+      await supabase
+        .from('users')
+        .update({
+          total_yes_earned: (user.total_yes_earned || 0) + amount
+        })
+        .eq('id', session.user.id)
+
+      // Log the conversion for referral commissions
+      await supabase.from('referral_commissions').insert({
+        referrer_id: user.referred_by || user.id,
+        referred_id: user.id,
+        activity_type: 'fuel_to_yes',
+        amount: amount,
+        commission_rate: 0.05,
+        commission_amount: Math.floor(amount * 0.05)
+      }).catch(() => {}) // Silent fail if no referrer
+
+      setConvertSuccess(`Converted ${fuelNeeded} Fuel → ${amount} YES!`)
+      setConvertAmount('')
+      
+      // Refresh data
+      await loadUserData()
+      
+      setTimeout(() => {
+        setConvertSuccess('')
+        setShowConvert(false)
+      }, 2000)
+    } catch (err) {
+      console.error('Convert error:', err)
+    } finally {
+      setConverting(false)
+    }
+  }
+
   const formatNumber = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M'
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
@@ -475,7 +539,7 @@ export default function DashboardPage() {
                 <TrendingUp className="w-5 h-5 text-purple-400" />
                 Current Wallet
               </h2>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-yellow-400">{formatNumber(wallet?.energy || 0)}</p>
                   <p className="text-gray-400 text-sm">Energy</p>
@@ -489,6 +553,18 @@ export default function DashboardPage() {
                   <p className="text-gray-400 text-sm">YES</p>
                 </div>
               </div>
+              {/* Convert Button */}
+              <button
+                onClick={() => setShowConvert(true)}
+                disabled={(wallet?.fuel || 0) < 100}
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-cyan-500 rounded-xl font-bold hover:from-orange-600 hover:to-cyan-600 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Flame className="w-5 h-5" />
+                Convert Fuel → YES
+              </button>
+              {(wallet?.fuel || 0) < 100 && (
+                <p className="text-center text-gray-500 text-xs mt-2">Need at least 100 Fuel to convert</p>
+              )}
             </div>
 
             {/* FaucetPay Pool */}
@@ -635,6 +711,110 @@ export default function DashboardPage() {
 
         </div>
       </div>
+
+      {/* ═══ FUEL → YES CONVERSION MODAL ═══ */}
+      {showConvert && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gray-800 border border-cyan-500/30 rounded-2xl w-full max-w-md shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-cyan-500 rounded-full flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Convert Fuel → YES</h3>
+                  <p className="text-xs text-gray-400">100 Fuel = 1 YES Token</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowConvert(false); setConvertSuccess('') }} className="p-2 hover:bg-gray-700 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              {convertSuccess ? (
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <Coins className="w-8 h-8 text-green-400" />
+                  </div>
+                  <p className="text-green-400 font-bold text-lg">{convertSuccess}</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Balance display */}
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Your Fuel Balance</span>
+                      <span className="text-orange-400 font-bold text-lg">{formatNumber(wallet?.fuel || 0)} Fuel</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-gray-400 text-sm">Max convertible</span>
+                      <span className="text-cyan-400 font-bold">{Math.floor((wallet?.fuel || 0) / 100)} YES</span>
+                    </div>
+                  </div>
+
+                  {/* Input */}
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">YES to receive</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max={Math.floor((wallet?.fuel || 0) / 100)}
+                        value={convertAmount}
+                        onChange={(e) => setConvertAmount(e.target.value)}
+                        placeholder="Amount of YES"
+                        className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400 focus:outline-none"
+                      />
+                      <button
+                        onClick={() => setConvertAmount(String(Math.floor((wallet?.fuel || 0) / 100)))}
+                        className="px-4 py-3 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-400 font-bold hover:bg-cyan-500/30"
+                      >
+                        Max
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Preview */}
+                  {convertAmount && parseInt(convertAmount) > 0 && (
+                    <div className="bg-gradient-to-r from-orange-900/30 to-cyan-900/30 rounded-xl p-4 border border-orange-500/20">
+                      <div className="flex items-center justify-between">
+                        <div className="text-center">
+                          <p className="text-orange-400 font-bold text-xl">{formatNumber(parseInt(convertAmount) * 100)}</p>
+                          <p className="text-gray-400 text-xs">Fuel spent</p>
+                        </div>
+                        <ArrowRight className="w-6 h-6 text-gray-500" />
+                        <div className="text-center">
+                          <p className="text-cyan-400 font-bold text-xl">{convertAmount}</p>
+                          <p className="text-gray-400 text-xs">YES received</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Convert button */}
+                  <button
+                    onClick={handleConvertFuel}
+                    disabled={converting || !convertAmount || parseInt(convertAmount) < 1 || (parseInt(convertAmount) * 100) > (wallet?.fuel || 0)}
+                    className="w-full py-4 bg-gradient-to-r from-orange-500 to-cyan-500 rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {converting ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Flame className="w-5 h-5" />
+                        Convert Now
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ SOS FLOATING BUTTON ═══ */}
       <button
