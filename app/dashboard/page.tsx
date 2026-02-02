@@ -7,7 +7,7 @@ import {
   Globe, Zap, Fuel, Coins, DollarSign, LogOut, 
   Rocket, Star, ArrowRight, RefreshCw, User,
   TrendingUp, Calendar, ExternalLink, Wallet, Gift, Shield,
-  MessageCircle, Send, X
+  MessageCircle, Send, X, Trophy, Clock, Flame
 } from 'lucide-react'
 import { supabase, User as UserType } from '@/lib/supabase'
 
@@ -30,12 +30,49 @@ export default function DashboardPage() {
   const [sendingSOS, setSendingSOS] = useState(false)
   const [sosSent, setSosSent] = useState(false)
 
+  // Event
+  const [activeEvent, setActiveEvent] = useState<any>(null)
+  const [eventCountdown, setEventCountdown] = useState('')
+  const [eventPhase, setEventPhase] = useState<'upcoming' | 'active' | 'ended' | null>(null)
+
   useEffect(() => {
     setMounted(true)
     loadUserData()
     loadFaucetPayBalance()
     loadRecentActivity()
+    loadActiveEvent()
   }, [])
+
+  // Event countdown timer
+  useEffect(() => {
+    if (!activeEvent) return
+    const timer = setInterval(() => {
+      const now = Date.now()
+      const start = new Date(activeEvent.starts_at).getTime()
+      const end = new Date(activeEvent.ends_at).getTime()
+      if (now < start) {
+        setEventPhase('upcoming')
+        const ms = start - now
+        const d = Math.floor(ms / 86400000)
+        const h = Math.floor((ms % 86400000) / 3600000)
+        const m = Math.floor((ms % 3600000) / 60000)
+        const s = Math.floor((ms % 60000) / 1000)
+        setEventCountdown(d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m ${s}s`)
+      } else if (now < end) {
+        setEventPhase('active')
+        const ms = end - now
+        const d = Math.floor(ms / 86400000)
+        const h = Math.floor((ms % 86400000) / 3600000)
+        const m = Math.floor((ms % 3600000) / 60000)
+        const s = Math.floor((ms % 60000) / 1000)
+        setEventCountdown(d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m ${s}s`)
+      } else {
+        setEventPhase('ended')
+        setEventCountdown('Ended!')
+      }
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [activeEvent])
 
   const loadUserData = async () => {
     try {
@@ -173,6 +210,19 @@ export default function DashboardPage() {
         '💰 Instant cashouts via FaucetPay!'
       ])
     }
+  }
+
+  const loadActiveEvent = async () => {
+    try {
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .in('status', ['upcoming', 'active'])
+        .order('starts_at', { ascending: false })
+        .limit(1)
+        .single()
+      if (data) setActiveEvent(data)
+    } catch {}
   }
 
   const handleRefresh = async () => {
@@ -328,6 +378,43 @@ export default function DashboardPage() {
               Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
             </p>
           </div>
+
+          {/* ═══ EVENT BANNER ═══ */}
+          {activeEvent && (
+            <Link href="/event" className="block mb-8 group">
+              <div className="relative overflow-hidden rounded-2xl border-2 border-yellow-500/50 bg-gradient-to-r from-yellow-900/40 via-orange-900/30 to-red-900/40 p-5 transition-all group-hover:border-yellow-400/70 group-hover:brightness-110">
+                {/* Animated fire particles */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-full blur-2xl" />
+                
+                <div className="relative flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/30">
+                      <Trophy className="w-7 h-7 text-black" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-black text-lg">{activeEvent.name}</h3>
+                        {eventPhase === 'active' && (
+                          <span className="px-2 py-0.5 bg-green-500 text-black text-xs font-bold rounded-full animate-pulse">LIVE</span>
+                        )}
+                        {eventPhase === 'upcoming' && (
+                          <span className="px-2 py-0.5 bg-yellow-500 text-black text-xs font-bold rounded-full">SOON</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-300">Top 5 earn prizes! 🥇 250 YES 🥈 150 YES 🥉 100 YES</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-gray-400">
+                      {eventPhase === 'upcoming' ? 'Starts in' : eventPhase === 'active' ? 'Ends in' : ''}
+                    </p>
+                    <p className="text-xl font-mono font-black text-yellow-400">{eventCountdown}</p>
+                    <p className="text-xs text-cyan-400 mt-1 group-hover:underline">View Leaderboard →</p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
