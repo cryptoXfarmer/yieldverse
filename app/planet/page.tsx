@@ -663,17 +663,26 @@ function PlanetExploreContent() {
               <p className="text-xs text-gray-400 capitalize">{planet.rarity} • Tier {planet.tier}</p>
             </div>
           </div>
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-4 text-sm">
             <div className="text-center">
               <p className="text-gray-400 text-xs">Explored</p>
               <p className="font-bold text-cyan-400">{discoveredCount}/{tiles.length}</p>
             </div>
+            <div className="hidden sm:block w-px h-8 bg-gray-700" />
             <div className="text-center">
-              <p className="text-gray-400 text-xs">Fuel</p>
+              <p className="text-gray-400 text-xs">⚡ Energy</p>
+              <p className="font-bold text-yellow-400">{wallet?.energy?.toLocaleString() || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-gray-400 text-xs">💎 Rare</p>
+              <p className="font-bold text-purple-400">{wallet?.rare_resources?.toLocaleString() || 0}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-gray-400 text-xs">🔥 Fuel</p>
               <p className="font-bold text-orange-400">{wallet?.fuel?.toLocaleString() || 0}</p>
             </div>
             <div className="text-center">
-              <p className="text-gray-400 text-xs">YES</p>
+              <p className="text-gray-400 text-xs">💰 YES</p>
               <p className="font-bold text-green-400">{wallet?.yes_tokens?.toLocaleString() || 0}</p>
             </div>
           </div>
