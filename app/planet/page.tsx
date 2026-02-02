@@ -647,12 +647,12 @@ function PlanetExploreContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(135deg, #030712 0%, #0a0e27 40%, #0f0a1e 70%, #030712 100%)' }}>
       {/* Header */}
-      <nav className="bg-gray-800/80 backdrop-blur border-b border-gray-700 sticky top-0 z-50">
+      <nav className="bg-black/60 backdrop-blur-md border-b border-indigo-500/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="p-2 hover:bg-gray-700 rounded-lg">
+            <Link href="/dashboard" className="p-2 hover:bg-indigo-900/40 rounded-lg transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
@@ -706,14 +706,14 @@ function PlanetExploreContent() {
           <div className="space-y-4">
             
             {/* HQ Claim Panel */}
-            <div className="bg-gradient-to-br from-emerald-900/40 to-green-900/40 rounded-xl border-2 border-emerald-500/50 p-5">
-              <h2 className="font-bold mb-3 flex items-center gap-2">
+            <div className="bg-gradient-to-br from-emerald-950/50 to-green-950/30 rounded-xl border border-emerald-500/30 p-5 backdrop-blur-sm">
+              <h2 className="font-bold mb-3 flex items-center gap-2 text-emerald-300">
                 <Home className="w-5 h-5 text-emerald-400" />
-                Headquarters
+                🛰️ Headquarters
               </h2>
               
               {/* Timer */}
-              <div className="bg-black/30 rounded-lg p-3 mb-3">
+              <div className="bg-black/40 rounded-lg p-3 mb-3 border border-emerald-900/30">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-gray-400 text-sm flex items-center gap-1">
                     <Clock className="w-4 h-4" /> Next Claim
@@ -736,13 +736,13 @@ function PlanetExploreContent() {
 
               {/* Pending Rewards */}
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="bg-black/30 rounded-lg p-2 text-center">
+                <div className="bg-black/40 rounded-lg p-2 text-center border border-orange-900/20">
                   <p className="text-xs text-gray-400">Pending Fuel</p>
                   <p className="text-orange-400 font-bold">
                     +{Math.floor(tiles.filter(t => t.type === 'energy' || t.type === 'factory').reduce((s, t) => s + t.bonus, 0) / 4)}
                   </p>
                 </div>
-                <div className="bg-black/30 rounded-lg p-2 text-center">
+                <div className="bg-black/40 rounded-lg p-2 text-center border border-green-900/20">
                   <p className="text-xs text-gray-400">Pending YES</p>
                   <p className="text-green-400 font-bold">
                     +{Math.floor(tiles.filter(t => t.type === 'crystal' || t.type === 'artifact').reduce((s, t) => s + t.bonus, 0) / 4)}
@@ -772,8 +772,8 @@ function PlanetExploreContent() {
             </div>
 
             {/* Selected Tile */}
-            <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
-              <h2 className="font-bold mb-4 flex items-center gap-2">
+            <div className="bg-gradient-to-br from-slate-900/80 to-indigo-950/40 rounded-xl border border-indigo-500/20 p-5 backdrop-blur-sm">
+              <h2 className="font-bold mb-4 flex items-center gap-2 text-cyan-300">
                 <Info className="w-5 h-5 text-cyan-400" />
                 {selectedTile ? 'Selected Tile' : 'Select a Tile'}
               </h2>
@@ -957,8 +957,8 @@ function PlanetExploreContent() {
             )}
 
             {/* Planet Bonuses */}
-            <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
-              <h3 className="font-bold mb-3 flex items-center gap-2">
+            <div className="bg-gradient-to-br from-slate-900/80 to-indigo-950/40 rounded-xl border border-indigo-500/20 p-5 backdrop-blur-sm">
+              <h3 className="font-bold mb-3 flex items-center gap-2 text-yellow-300">
                 <Coins className="w-5 h-5 text-yellow-400" />
                 Daily Production
               </h3>
