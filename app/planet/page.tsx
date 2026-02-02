@@ -756,16 +756,21 @@ function PlanetExploreContent() {
                 disabled={claiming || (nextClaimTime > Date.now())}
                 className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
                   nextClaimTime <= Date.now() 
-                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:brightness-110 animate-pulse' 
-                    : 'bg-gray-700 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:brightness-110 animate-pulse text-white' 
+                    : 'bg-indigo-950/60 border border-indigo-500/20 text-indigo-400/60 cursor-not-allowed'
                 }`}
               >
                 {claiming ? (
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                ) : (
+                ) : nextClaimTime <= Date.now() ? (
                   <>
                     <Gift className="w-5 h-5" />
-                    {nextClaimTime <= Date.now() ? 'Claim Rewards!' : 'Waiting...'}
+                    Claim Rewards!
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-4 h-4" />
+                    In orbit... awaiting signal
                   </>
                 )}
               </button>
