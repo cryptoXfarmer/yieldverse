@@ -125,6 +125,30 @@ export default function DashboardPage() {
         news.push(`${rarityEmoji} ${p.users?.username || 'Pilot'} discovered ${p.name}!`)
       })
 
+      // Get recent tile discoveries (non-empty only)
+      const { data: recentTiles } = await supabase
+        .from('tiles')
+        .select('type, level, bonus, planets(name, users(username))')
+        .eq('discovered', true)
+        .neq('type', 'empty')
+        .neq('type', 'hq')
+        .limit(8)
+
+      recentTiles?.forEach((t: any) => {
+        const planetName = t.planets?.name || 'Unknown'
+        const username = t.planets?.users?.username || 'Pilot'
+        const tileInfo: Record<string, { emoji: string; label: string }> = {
+          energy: { emoji: '⚡', label: 'Energy Vein' },
+          crystal: { emoji: '💎', label: 'Crystal Formation' },
+          factory: { emoji: '🏭', label: 'Ancient Factory' },
+          artifact: { emoji: '⭐', label: 'RARE Artifact' },
+        }
+        const info = tileInfo[t.type]
+        if (info) {
+          news.push(`${info.emoji} ${username} found ${info.label} on ${planetName}!`)
+        }
+      })
+
       // Shuffle and set
       const shuffled = news.sort(() => Math.random() - 0.5)
       setNewsItems(shuffled.length > 0 ? shuffled : [
