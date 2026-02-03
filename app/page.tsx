@@ -171,6 +171,12 @@ export default function HomePage() {
         <footer className="py-12 px-4 border-t border-gray-800">
           <div className="max-w-7xl mx-auto text-center">
             <p className="text-gray-500 mb-4">© 2026 YieldVerse Metaverse. All rights reserved.</p>
+            <div className="flex gap-6 justify-center flex-wrap mb-3">
+              <a href="https://energy-empire.space" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-sm hover:text-cyan-400 transition-colors">⚡ Energy Empire</a>
+              <Link href="/news" className="text-gray-600 text-sm hover:text-yellow-400 transition-colors">📰 News</Link>
+              <a href="https://x.com/Crypto_FarmerX" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-sm hover:text-cyan-400 transition-colors">🐦 Twitter / X</a>
+              <a href="https://www.facebook.com/profile.php?id=61586569664260" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-sm hover:text-blue-400 transition-colors">📘 Facebook</a>
+            </div>
             <p className="text-sm text-gray-600">The future of Play-to-Earn gaming 🚀</p>
           </div>
         </footer>
