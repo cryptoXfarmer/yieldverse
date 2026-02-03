@@ -81,14 +81,14 @@ export default function EventPage() {
       setMyUserId(session.user.id)
 
       // Load active or upcoming event
-      const { data: eventData } = await supabase
+      const { data: eventList } = await supabase
         .from('events')
         .select('*')
         .in('status', ['upcoming', 'active', 'ended'])
         .order('starts_at', { ascending: false })
         .limit(1)
-        .single()
 
+      const eventData = eventList && eventList.length > 0 ? eventList[0] : null
       if (!eventData) { setLoading(false); return }
       
       // Auto-update status based on time

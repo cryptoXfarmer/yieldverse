@@ -226,8 +226,7 @@ export default function DashboardPage() {
         .in('status', ['upcoming', 'active'])
         .order('starts_at', { ascending: false })
         .limit(1)
-        .single()
-      if (data) setActiveEvent(data)
+      if (data && data.length > 0) setActiveEvent(data[0])
     } catch {}
   }
 
