@@ -278,7 +278,7 @@ export default function EventPage() {
         {/* ═══ GO PLAY BUTTON ═══ */}
         {phase === 'active' && (
           <a
-            href="https://www.energy-empire.fun/dashboard"
+            href="https://www.energy-empire.space/dashboard"
             target="_blank"
             className="block w-full py-4 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 hover:brightness-110 rounded-xl font-black text-lg text-center text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
