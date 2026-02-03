@@ -10,6 +10,7 @@ import {
   MessageCircle, Send, X, Trophy, Clock, Flame
 } from 'lucide-react'
 import { supabase, User as UserType } from '@/lib/supabase'
+import DailyStreak from '@/components/DailyStreak'
 
 const ADMIN_EMAILS = ['gtrust1985@gmail.com']
 
@@ -36,6 +37,9 @@ export default function DashboardPage() {
   const [converting, setConverting] = useState(false)
   const [convertSuccess, setConvertSuccess] = useState('')
 
+  // Cashout Notification
+  const [showCashoutNotif, setShowCashoutNotif] = useState(false)
+
   // Event
   const [activeEvent, setActiveEvent] = useState<any>(null)
   const [eventCountdown, setEventCountdown] = useState('')
@@ -47,6 +51,14 @@ export default function DashboardPage() {
     loadFaucetPayBalance()
     loadRecentActivity()
     loadActiveEvent()
+  }, [])
+
+  // Cashout promo notification — show after 10s
+  useEffect(() => {
+    const dismissed = sessionStorage.getItem('cashout_notif_dismissed')
+    if (dismissed) return
+    const timer = setTimeout(() => setShowCashoutNotif(true), 10000)
+    return () => clearTimeout(timer)
   }, [])
 
   // Event countdown timer
@@ -443,6 +455,13 @@ export default function DashboardPage() {
               Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
             </p>
           </div>
+
+          {/* ═══ DAILY STREAK ═══ */}
+          {user?.id && (
+            <div className="mb-6">
+              <DailyStreak userId={user.id} />
+            </div>
+          )}
 
           {/* ═══ EVENT BANNER ═══ */}
           {activeEvent && (
@@ -891,6 +910,52 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ═══ CASHOUT PROMO NOTIFICATION ═══ */}
+      {showCashoutNotif && (
+        <div className="fixed bottom-6 right-6 z-[999] animate-bounce-in" style={{ animation: 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
+          <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl p-5 shadow-2xl shadow-cyan-500/10 max-w-sm">
+            {/* Close */}
+            <button 
+              onClick={() => { setShowCashoutNotif(false); sessionStorage.setItem('cashout_notif_dismissed', '1') }}
+              className="absolute top-2 right-2 text-gray-600 hover:text-white transition-colors p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            
+            {/* Glow accent */}
+            <div className="absolute -top-1 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full" />
+            
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-green-500/20 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-2xl">💸</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-white text-sm mb-1">📢 New: Lower Cashout Minimum!</p>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  We've lowered the minimum cashout to just <span className="text-cyan-400 font-bold">10 YES</span> tokens (<span className="text-green-400 font-bold">$0.01</span>)! 
+                  It's now easier than ever to withdraw your earnings instantly via FaucetPay.
+                </p>
+                <Link href="/cashout" 
+                  onClick={() => { setShowCashoutNotif(false); sessionStorage.setItem('cashout_notif_dismissed', '1') }}
+                  className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-gradient-to-r from-cyan-500 to-green-500 hover:brightness-110 rounded-lg text-xs font-bold text-black transition-all"
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  Cashout Now
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes slideUp {
+          0% { transform: translateY(30px) scale(0.95); opacity: 0; }
+          100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 }
