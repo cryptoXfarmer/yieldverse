@@ -391,6 +391,16 @@ export default function EventPage() {
           </ul>
         </div>
 
+        {/* AADS Banner */}
+        <div className="rounded-xl overflow-hidden border border-gray-700/50 bg-gray-800/30">
+          <iframe
+            data-aa="2426378"
+            src="//acceptable.a-ads.com/2426378/?size=Adaptive"
+            style={{ border: 0, padding: 0, width: '70%', height: 'auto', overflow: 'hidden', display: 'block', margin: '0 auto' }}
+            title="Ad"
+          />
+        </div>
+
       </div>
     </div>
   )
