@@ -30,7 +30,7 @@ export default function CashoutPage() {
   const [canCashout, setCanCashout] = useState(true)
   const [nextCashoutTime, setNextCashoutTime] = useState<string>('')
 
-  const MIN_CASHOUT = 100
+  const MIN_CASHOUT = 10
   const YES_TO_USD = 0.001
   const CASHOUT_COOLDOWN = 24 * 60 * 60 * 1000 // 24 heures
 
