@@ -7,10 +7,11 @@ import {
   Globe, Zap, Fuel, Coins, DollarSign, LogOut, 
   Rocket, Star, ArrowRight, RefreshCw, User,
   TrendingUp, Calendar, ExternalLink, Wallet, Gift, Shield,
-  MessageCircle, Send, X, Trophy, Clock, Flame
+  MessageCircle, Send, X, Trophy, Clock, Flame, ArrowRightLeft
 } from 'lucide-react'
 import { supabase, User as UserType } from '@/lib/supabase'
 import DailyStreak from '@/components/DailyStreak'
+import StarForgeBridge from '@/components/StarForgeBridge'
 
 const ADMIN_EMAILS = ['gtrust1985@gmail.com']
 
@@ -349,12 +350,12 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-deep)' }}>
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center animate-spin-slow">
-            <Globe className="w-8 h-8 text-white" />
+          <div className="planet-hero w-16 h-16 mx-auto mb-5 flex items-center justify-center">
+            <Globe className="w-7 h-7 text-white/60" />
           </div>
-          <p className="text-gray-400">Loading your universe...</p>
+          <p className="text-gray-500 text-sm" style={{ fontFamily: 'Orbitron, sans-serif' }}>Loading your universe...</p>
         </div>
       </div>
     )
@@ -362,59 +363,38 @@ export default function DashboardPage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Stars */}
+      {/* Background layers */}
       <div className="stars">
         {mounted && [...Array(60)].map((_, i) => (
-          <div
-            key={i}
-            className="star"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 2}s`,
-            }}
+          <div key={i} className={`star ${i < 6 ? 'large' : ''}`}
+            style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, '--dur': `${2.5 + Math.random() * 3}s`, '--delay': `${Math.random() * 4}s` } as React.CSSProperties}
           />
         ))}
       </div>
       <div className="nebula" />
+      <div className="grid-overlay" />
 
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
-              <Globe className="w-5 h-5 text-white" />
+      {/* ═══ NAVIGATION ═══ */}
+      <nav className="nav-bar">
+        <div className="max-w-7xl mx-auto px-5 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center planet-glow">
+              <Globe className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-              YIELDVERSE
-            </span>
+            <span className="text-sm font-bold gradient-text-main" style={{ fontFamily: 'Orbitron, sans-serif' }}>YIELDVERSE</span>
           </Link>
           
-          <div className="flex items-center gap-4">
-            {/* Admin Button - Only for admins */}
+          <div className="flex items-center gap-3">
             {user?.email && ADMIN_EMAILS.includes(user.email) && (
-              <Link
-                href="/admin"
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
-              >
-                <Shield className="w-4 h-4 text-red-400" />
-                <span className="text-red-400">Admin</span>
+              <Link href="/admin" className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg hover:bg-red-500/20 transition-colors text-xs font-bold text-red-400">
+                <Shield className="w-3.5 h-3.5" /> Admin
               </Link>
             )}
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            <button onClick={handleRefresh} disabled={refreshing} className="p-2 rounded-lg hover:bg-white/5 transition-colors" title="Refresh">
+              <RefreshCw className={`w-4 h-4 text-gray-500 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
+            <button onClick={handleLogout} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium hover:bg-white/5 transition-colors" style={{ borderColor: 'var(--border-dim)', color: 'var(--text-secondary)' }}>
+              <LogOut className="w-3.5 h-3.5" /> Logout
             </button>
           </div>
         </div>
@@ -422,52 +402,48 @@ export default function DashboardPage() {
 
       {/* News Ticker */}
       {mounted && newsItems.length > 0 && (
-        <div className="fixed top-[73px] left-0 right-0 z-40 bg-gradient-to-r from-purple-900/90 via-cyan-900/90 to-purple-900/90 border-b border-cyan-500/30 overflow-hidden">
-          <div className="news-ticker py-2">
+        <div className="fixed top-[53px] left-0 right-0 z-40 border-b overflow-hidden" style={{ background: 'rgba(5,5,16,0.9)', borderColor: 'var(--border-dim)' }}>
+          <div className="news-ticker py-1.5">
             <div className="news-ticker-content">
               {[...newsItems, ...newsItems].map((item, i) => (
-                <span key={i} className="mx-8 text-sm whitespace-nowrap">
-                  {item}
-                </span>
+                <span key={i} className="mx-8 text-xs whitespace-nowrap">{item}</span>
               ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* Content */}
-      <div className="relative z-10 pt-32 pb-12 px-4">
+      {/* ═══ CONTENT ═══ */}
+      <div className="relative z-10 pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
-          
-          {/* Welcome Header */}
+
+          {/* Welcome */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-2">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
-                <User className="w-8 h-8 text-white" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border flex items-center justify-center" style={{ borderColor: 'var(--border-subtle)' }}>
+                <User className="w-6 h-6 text-cyan-400" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">{user?.username || 'Pilot'}</h1>
-                <p className="text-gray-400">{user?.email}</p>
+                <h1 className="text-2xl font-black" style={{ fontFamily: 'Orbitron, sans-serif' }}>{user?.username || 'Pilot'}</h1>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>
+                  <Calendar className="w-3 h-3 inline mr-1" />
+                  Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                </p>
               </div>
             </div>
-            <p className="text-gray-500 text-sm mt-2">
-              <Calendar className="w-4 h-4 inline mr-1" />
-              Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-            </p>
           </div>
 
-          {/* ═══ DAILY STREAK ═══ */}
+          {/* Daily Streak */}
           {user?.id && (
             <div className="mb-6">
               <DailyStreak userId={user.id} />
             </div>
           )}
 
-          {/* ═══ EVENT BANNER ═══ */}
+          {/* Event Banner */}
           {activeEvent && (
             <Link href="/event" className="block mb-8 group">
-              <div className="relative overflow-hidden rounded-2xl border-2 border-yellow-500/50 bg-gradient-to-r from-yellow-900/40 via-orange-900/30 to-red-900/40 p-5 transition-all group-hover:border-yellow-400/70 group-hover:brightness-110">
-                {/* Animated fire particles */}
+              <div className="game-card energy-empire p-5 transition-all group-hover:brightness-110" style={{ borderColor: 'rgba(251,191,36,0.25)' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-full blur-2xl" />
                 
                 <div className="relative flex items-center justify-between gap-4">
@@ -500,243 +476,235 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Stats Grid */}
+          {/* ═══ STATS ═══ */}
+          <p className="section-label">LIFETIME STATS</p>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white/5 backdrop-blur-sm border-2 stat-energy rounded-2xl p-6 card-hover">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-yellow-400" />
+            <div className="stat-card energy">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.1)' }}>
+                  <Zap className="w-5 h-5 text-yellow-400" />
                 </div>
-                <span className="text-gray-400 text-sm">Total Energy</span>
+                <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Total Energy</span>
               </div>
-              <p className="text-3xl font-bold text-yellow-400">
+              <p className="text-2xl font-black text-yellow-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                 {formatNumber(user?.total_energy_earned || 0)}
               </p>
             </div>
-
-            <div className="bg-white/5 backdrop-blur-sm border-2 stat-fuel rounded-2xl p-6 card-hover">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <Fuel className="w-6 h-6 text-orange-400" />
+            <div className="stat-card fuel">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.1)' }}>
+                  <Fuel className="w-5 h-5 text-orange-400" />
                 </div>
-                <span className="text-gray-400 text-sm">Total Fuel</span>
+                <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Total Fuel</span>
               </div>
-              <p className="text-3xl font-bold text-orange-400">
+              <p className="text-2xl font-black text-orange-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                 {formatNumber(user?.total_fuel_earned || 0)}
               </p>
             </div>
-
-            <div className="bg-white/5 backdrop-blur-sm border-2 stat-yes rounded-2xl p-6 card-hover">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                  <Coins className="w-6 h-6 text-cyan-400" />
+            <div className="stat-card yes">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,240,255,0.1)' }}>
+                  <Coins className="w-5 h-5 text-cyan-400" />
                 </div>
-                <span className="text-gray-400 text-sm">YES Tokens</span>
+                <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Total YES</span>
               </div>
-              <p className="text-3xl font-bold text-cyan-400 yes-glow">
+              <p className="text-2xl font-black text-cyan-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                 {formatNumber(user?.total_yes_earned || 0)}
               </p>
             </div>
-
-            <div className="bg-white/5 backdrop-blur-sm border-2 stat-usd rounded-2xl p-6 card-hover">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-green-400" />
+            <div className="stat-card usd">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.1)' }}>
+                  <DollarSign className="w-5 h-5 text-emerald-400" />
                 </div>
-                <span className="text-gray-400 text-sm">Total Cashout</span>
+                <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Cashed Out</span>
               </div>
-              <p className="text-3xl font-bold text-green-400">
+              <p className="text-2xl font-black text-emerald-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                 ${(user?.total_cashout_usd || 0).toFixed(2)}
               </p>
             </div>
           </div>
 
-          {/* Current Wallet + Pool */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Current Wallet */}
-            <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
-                Current Wallet
-              </h2>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-yellow-400">{formatNumber(wallet?.energy || 0)}</p>
-                  <p className="text-gray-400 text-sm">Energy</p>
+          {/* ═══ WALLET + POOL ═══ */}
+          <div className="grid md:grid-cols-2 gap-5 mb-8">
+            <div className="glass-card p-5" style={{ borderColor: 'rgba(124,58,237,0.15)' }}>
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-4 h-4 text-purple-400" />
+                <h2 className="text-sm font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>Current Wallet</h2>
+              </div>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="text-center p-3 rounded-xl" style={{ background: 'var(--bg-card)' }}>
+                  <p className="text-xl font-black text-yellow-400">{formatNumber(wallet?.energy || 0)}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>Energy</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-orange-400">{formatNumber(wallet?.fuel || 0)}</p>
-                  <p className="text-gray-400 text-sm">Fuel</p>
+                <div className="text-center p-3 rounded-xl" style={{ background: 'var(--bg-card)' }}>
+                  <p className="text-xl font-black text-orange-400">{formatNumber(wallet?.fuel || 0)}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>Fuel</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-cyan-400">{formatNumber(wallet?.yes_tokens || 0)}</p>
-                  <p className="text-gray-400 text-sm">YES</p>
+                <div className="text-center p-3 rounded-xl" style={{ background: 'var(--bg-card)' }}>
+                  <p className="text-xl font-black text-cyan-400">{formatNumber(wallet?.yes_tokens || 0)}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>YES</p>
                 </div>
               </div>
-              {/* Convert Button */}
-              <button
-                onClick={() => setShowConvert(true)}
-                disabled={(wallet?.fuel || 0) < 100}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-cyan-500 rounded-xl font-bold hover:from-orange-600 hover:to-cyan-600 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Flame className="w-5 h-5" />
-                Convert Fuel → YES
+              <button onClick={() => setShowConvert(true)} disabled={(wallet?.fuel || 0) < 100}
+                className="btn-gold w-full py-3 text-sm rounded-xl disabled:opacity-30 disabled:cursor-not-allowed">
+                <Flame className="w-4 h-4" /> Convert Fuel → YES
               </button>
               {(wallet?.fuel || 0) < 100 && (
-                <p className="text-center text-gray-500 text-xs mt-2">Need at least 100 Fuel to convert</p>
+                <p className="text-center text-xs mt-2" style={{ color: 'var(--text-dim)' }}>Need at least 100 Fuel</p>
               )}
             </div>
 
-            {/* FaucetPay Pool */}
-            <div className="bg-gradient-to-r from-green-900/30 to-cyan-900/30 backdrop-blur-sm border border-green-500/30 rounded-2xl p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-green-400" />
-                Pool Balance (LTC)
-              </h2>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-green-400">
+            <div className="glass-card p-5" style={{ borderColor: 'rgba(16,185,129,0.15)' }}>
+              <div className="flex items-center gap-2 mb-4">
+                <Wallet className="w-4 h-4 text-emerald-400" />
+                <h2 className="text-sm font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>Pool Balance</h2>
+              </div>
+              <div className="text-center py-2">
+                <p className="text-3xl font-black text-emerald-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                   {faucetPayBalance !== null ? formatLTC(faucetPayBalance) : '---'} LTC
                 </p>
-                <p className="text-gray-400 text-sm mt-1">Available for cashouts</p>
-                <Link 
-                  href="/cashout"
-                  className="mt-4 inline-flex items-center gap-2 px-6 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <DollarSign className="w-4 h-4" />
-                  Cashout
+                <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Available for cashouts</p>
+                <Link href="/cashout" className="btn-emerald mt-4 px-6 py-2.5 text-sm rounded-xl">
+                  <DollarSign className="w-4 h-4" /> Cashout
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* Planets Section */}
-          <div className="bg-white/5 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6 mb-8">
+          {/* ═══ PLANETS ═══ */}
+          <div className="glass-card p-5 mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Globe className="w-5 h-5 text-purple-400" />
-                My Planets
-              </h2>
-              <Link 
-                href="/planets"
-                className="text-cyan-400 hover:underline flex items-center gap-1"
-              >
-                View All <ArrowRight className="w-4 h-4" />
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-purple-400" />
+                <h2 className="text-sm font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>My Planets</h2>
+              </div>
+              <Link href="/planets" className="text-cyan-400 text-xs hover:underline flex items-center gap-1">
+                View All <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
             
             {planets.length === 0 ? (
               <div className="text-center py-8">
-                <Gift className="w-12 h-12 mx-auto mb-3 text-gray-500" />
-                <p className="text-gray-400 mb-4">You don&apos;t have any planets yet!</p>
-                <Link 
-                  href="/planets"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-xl font-bold hover:opacity-90 transition-opacity"
-                >
-                  <Gift className="w-5 h-5" />
-                  Claim Free Planet
+                <Gift className="w-10 h-10 mx-auto mb-3 text-gray-700" />
+                <p className="text-sm mb-3" style={{ color: 'var(--text-dim)' }}>No planets yet!</p>
+                <Link href="/planets" className="btn-primary px-5 py-2.5 text-sm rounded-xl">
+                  <Gift className="w-4 h-4" /> Claim Free Planet
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {planets.slice(0, 4).map((planet) => (
-                  <Link 
-                    key={planet.id} 
-                    href={`/planet?id=${planet.id}`}
-                    className="bg-black/30 rounded-xl p-4 text-center hover:bg-black/50 transition-colors group"
-                  >
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 group-hover:scale-110 transition-transform" />
-                    <p className="font-bold text-sm truncate">{planet.name}</p>
-                    <p className="text-xs text-gray-500 mb-2">{planet.rarity}</p>
-                    <span className="text-xs text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                      🔍 Explore →
-                    </span>
+                  <Link key={planet.id} href={`/planet?id=${planet.id}`}
+                    className="rounded-xl p-4 text-center group transition-all hover:bg-white/5" style={{ background: 'var(--bg-card)' }}>
+                    <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 group-hover:scale-110 transition-transform planet-glow" />
+                    <p className="font-bold text-xs truncate">{planet.name}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{planet.rarity}</p>
                   </Link>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Games Section */}
-          <h2 className="text-2xl font-bold mb-4">Your Games</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Energy Empire - LIEN CORRIGÉ */}
-            <div className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 backdrop-blur-sm border-2 border-yellow-500/30 rounded-2xl p-6 hover:border-yellow-500 transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 energy-glow flex items-center justify-center">
-                    <Zap className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-yellow-400">Energy Empire</h3>
-                    <span className="text-xs px-2 py-1 bg-green-500 rounded-full">LIVE</span>
+          {/* ═══ GAMES ═══ */}
+          <p className="section-label mt-2">YOUR GAMES</p>
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="game-card energy-empire">
+              <div className="absolute -top-16 -right-16 w-40 h-40 bg-yellow-500/5 rounded-full blur-3xl" />
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 energy-glow flex items-center justify-center">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-yellow-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>Energy Empire</h3>
+                      <span className="badge badge-live text-[10px]">● LIVE</span>
+                    </div>
                   </div>
                 </div>
+                <p className="text-gray-500 text-sm mb-4">Click, craft fuel, and dominate the energy cosmos!</p>
+                <a href="https://www.energy-empire.space" target="_blank" rel="noopener noreferrer"
+                  className="btn-gold w-full py-3 text-sm rounded-xl">
+                  <Rocket className="w-4 h-4" /> Play Now <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               </div>
-              
-              <p className="text-gray-400 text-sm mb-4">Click, craft fuel, and dominate the energy cosmos!</p>
-              
-              <a 
-                href="https://www.energy-empire.space"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2"
-              >
-                <Rocket className="w-5 h-5" />
-                Play Now
-                <ExternalLink className="w-4 h-4" />
-              </a>
             </div>
 
-            {/* StarForge PTC */}
-            <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 backdrop-blur-sm border-2 border-blue-500/30 rounded-2xl p-6 hover:border-blue-500 transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 planet-glow flex items-center justify-center animate-spin-slow">
-                    <Star className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-blue-400">StarForge PTC</h3>
-                    <span className="text-xs px-2 py-1 bg-yellow-500 text-black rounded-full">COMING SOON</span>
+            <div className="game-card starforge">
+              <div className="absolute -top-16 -left-16 w-40 h-40 bg-purple-500/5 rounded-full blur-3xl" />
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 planet-glow flex items-center justify-center">
+                      <Star className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-blue-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>StarForge</h3>
+                      <span className="badge badge-alpha text-[10px]">ALPHA</span>
+                    </div>
                   </div>
                 </div>
+                <p className="text-gray-500 text-sm mb-4">Explore space, mine resources, earn YES!</p>
+                <a href="https://starforge.space/alpha/forge" target="_blank" rel="noopener noreferrer" className="btn-primary w-full py-3 text-sm rounded-xl flex items-center justify-center gap-2">
+                  <Rocket className="w-4 h-4" /> Play StarForge
+                </a>
               </div>
-              
-              <p className="text-gray-400 text-sm mb-4">Watch ads, complete tasks, earn stars!</p>
-              
-              <button 
-                disabled
-                className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl font-bold opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Star className="w-5 h-5" />
-                Coming Soon
-              </button>
             </div>
           </div>
 
-          {/* Quick Info */}
-          <div className="mt-8 grid md:grid-cols-3 gap-4">
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
-              <p className="text-gray-400 text-sm mb-1">Conversion Rate</p>
-              <p className="text-lg font-bold">100 Fuel = 1 YES</p>
+          {/* ═══ STARFORGE BRIDGE ═══ */}
+          {user && (
+            <div className="mt-5 grid md:grid-cols-2 gap-5">
+              <StarForgeBridge userId={user.id} wallet={wallet} onRefresh={handleRefresh} />
+              <div className="glass-card p-5" style={{ borderColor: 'rgba(139,92,246,0.15)' }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <ArrowRightLeft className="w-4 h-4 text-purple-400" />
+                  <h2 className="text-sm font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>Cross-Game Economy</h2>
+                </div>
+                <div className="space-y-2 text-[11px]">
+                  <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'var(--bg-card)' }}>
+                    <span className="text-cyan-400">🚀→🌐</span>
+                    <span className="text-gray-400 flex-1">StarForge YES → YieldVerse YES</span>
+                    <span className="text-cyan-400 font-bold">1:1</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'var(--bg-card)' }}>
+                    <span className="text-yellow-400">🌐→🚀</span>
+                    <span className="text-gray-400 flex-1">500 YV Energy → 100 SF Resource</span>
+                    <span className="text-yellow-400 font-bold">5:1</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'var(--bg-card)' }}>
+                    <span className="text-orange-400">🌐→🚀</span>
+                    <span className="text-gray-400 flex-1">100 YV Fuel → 50 SF Resource</span>
+                    <span className="text-orange-400 font-bold">2:1</span>
+                  </div>
+                </div>
+                <p className="text-[9px] text-gray-600 mt-3 text-center">Open Trade Terminal in StarForge to transfer</p>
+              </div>
             </div>
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
-              <p className="text-gray-400 text-sm mb-1">Cashout Rate</p>
-              <p className="text-lg font-bold">1000 YES = 0.001 LTC</p>
+          )
+
+          {/* ═══ QUICK INFO ═══ */}
+          <div className="mt-8 grid md:grid-cols-3 gap-3">
+            <div className="glass-card p-4 text-center">
+              <p className="text-[10px] mb-1" style={{ color: 'var(--text-dim)' }}>Conversion Rate</p>
+              <p className="text-sm font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>100 Fuel = 1 YES</p>
             </div>
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
-              <p className="text-gray-400 text-sm mb-1">Min Cashout</p>
-              <p className="text-lg font-bold">100 YES (0.0001 LTC)</p>
+            <div className="glass-card p-4 text-center">
+              <p className="text-[10px] mb-1" style={{ color: 'var(--text-dim)' }}>Cashout Rate</p>
+              <p className="text-sm font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>1000 YES = 0.001 LTC</p>
+            </div>
+            <div className="glass-card p-4 text-center">
+              <p className="text-[10px] mb-1" style={{ color: 'var(--text-dim)' }}>Min Cashout</p>
+              <p className="text-sm font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>10 YES ($0.01)</p>
             </div>
           </div>
 
           {/* AADS Banner */}
-          <div className="mt-6 rounded-xl overflow-hidden border border-white/10 bg-white/5">
-            <iframe
-              data-aa="2426378"
-              src="//acceptable.a-ads.com/2426378/?size=Adaptive"
+          <div className="mt-6 rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-dim)', background: 'var(--bg-card)' }}>
+            <iframe data-aa="2426378" src="//acceptable.a-ads.com/2426378/?size=Adaptive"
               style={{ border: 0, padding: 0, width: '70%', height: 'auto', overflow: 'hidden', display: 'block', margin: '0 auto' }}
-              title="Ad"
-            />
+              title="Ad" />
           </div>
 
         </div>
@@ -744,25 +712,20 @@ export default function DashboardPage() {
 
       {/* ═══ FUEL → YES CONVERSION MODAL ═══ */}
       {showConvert && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gray-800 border border-cyan-500/30 rounded-2xl w-full max-w-md shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-700">
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--border-dim)' }}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-cyan-500 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-cyan-500 rounded-xl flex items-center justify-center">
                   <Flame className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Convert Fuel → YES</h3>
-                  <p className="text-xs text-gray-400">100 Fuel = 1 YES Token</p>
+                  <h3 className="font-bold text-sm" style={{ fontFamily: 'Orbitron, sans-serif' }}>Convert Fuel → YES</h3>
+                  <p className="text-[10px]" style={{ color: 'var(--text-dim)' }}>100 Fuel = 1 YES Token</p>
                 </div>
               </div>
-              <button onClick={() => { setShowConvert(false); setConvertSuccess('') }} className="p-2 hover:bg-gray-700 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
+              <button onClick={() => { setShowConvert(false); setConvertSuccess('') }} className="p-2 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
             </div>
-
-            {/* Body */}
             <div className="p-5">
               {convertSuccess ? (
                 <div className="text-center py-6">
@@ -846,36 +809,29 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ═══ SOS FLOATING BUTTON ═══ */}
-      <button
-        onClick={() => setShowSOS(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-br from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 rounded-full shadow-lg shadow-red-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-        title="Need help? Send a message!"
-      >
-        <MessageCircle className="w-6 h-6 text-white" />
+      {/* ═══ SOS BUTTON ═══ */}
+      <button onClick={() => setShowSOS(true)}
+        className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 hover:brightness-110 rounded-xl shadow-lg shadow-red-500/20 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+        title="Need help?">
+        <MessageCircle className="w-5 h-5 text-white" />
       </button>
 
       {/* ═══ SOS MODAL ═══ */}
       {showSOS && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-700">
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--border-dim)' }}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center">
                   <MessageCircle className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Need Help?</h3>
-                  <p className="text-xs text-gray-400">Send a message to the team</p>
+                  <h3 className="font-bold text-sm" style={{ fontFamily: 'Orbitron, sans-serif' }}>Need Help?</h3>
+                  <p className="text-[10px]" style={{ color: 'var(--text-dim)' }}>Send a message to the team</p>
                 </div>
               </div>
-              <button onClick={() => { setShowSOS(false); setSosSent(false) }} className="p-2 hover:bg-gray-700 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
+              <button onClick={() => { setShowSOS(false); setSosSent(false) }} className="p-2 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
             </div>
-
-            {/* Body */}
             <div className="p-5">
               {sosSent ? (
                 <div className="text-center py-8">
