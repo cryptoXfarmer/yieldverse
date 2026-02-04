@@ -641,13 +641,13 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-blue-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>StarForge</h3>
-                      <span className="badge badge-alpha text-[10px]">ALPHA</span>
+                      <span className="badge badge-soon text-[10px]">IN DEV</span>
                     </div>
                   </div>
                 </div>
-                <p className="text-gray-500 text-sm mb-4">Explore space, mine resources, earn YES!</p>
-                <a href="https://starforge.space/alpha/forge" target="_blank" rel="noopener noreferrer" className="btn-primary w-full py-3 text-sm rounded-xl flex items-center justify-center gap-2">
-                  <Rocket className="w-4 h-4" /> Play StarForge
+                <p className="text-gray-500 text-sm mb-4">Space exploration strategy game — in development!</p>
+                <a href="https://spaceforge.live" target="_blank" rel="noopener noreferrer" className="btn-primary w-full py-3 text-sm rounded-xl flex items-center justify-center gap-2 opacity-60">
+                  <Rocket className="w-4 h-4" /> Coming Soon
                 </a>
               </div>
             </div>
