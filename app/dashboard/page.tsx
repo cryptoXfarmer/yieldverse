@@ -682,7 +682,7 @@ export default function DashboardPage() {
                 <p className="text-[9px] text-gray-600 mt-3 text-center">Open Trade Terminal in StarForge to transfer</p>
               </div>
             </div>
-          )
+          )}
 
           {/* ═══ QUICK INFO ═══ */}
           <div className="mt-8 grid md:grid-cols-3 gap-3">
