@@ -85,7 +85,7 @@ export default function StarForgeBridge({ userId, wallet, onRefresh }: StarForge
             Link your StarForge account to transfer resources between games!
           </p>
           <a
-            href="https://spaceforge.live"
+            href="https://www.starforge.live"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-gold inline-flex items-center gap-2 px-5 py-2.5 text-sm rounded-xl"
@@ -167,7 +167,7 @@ export default function StarForgeBridge({ userId, wallet, onRefresh }: StarForge
 
       {/* CTA */}
       <a
-        href="https://spaceforge.live"
+        href="https://www.starforge.live"
         target="_blank"
         rel="noopener noreferrer"
         className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"

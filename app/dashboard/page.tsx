@@ -646,7 +646,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <p className="text-gray-500 text-sm mb-4">Space exploration strategy game — in development!</p>
-                <a href="https://spaceforge.live" target="_blank" rel="noopener noreferrer" className="btn-primary w-full py-3 text-sm rounded-xl flex items-center justify-center gap-2 opacity-60">
+                <a href="https://www.starforge.live" target="_blank" rel="noopener noreferrer" className="btn-primary w-full py-3 text-sm rounded-xl flex items-center justify-center gap-2 opacity-60">
                   <Rocket className="w-4 h-4" /> Coming Soon
                 </a>
               </div>
