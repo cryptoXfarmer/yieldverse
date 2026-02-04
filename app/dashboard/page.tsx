@@ -46,6 +46,9 @@ export default function DashboardPage() {
   const [eventCountdown, setEventCountdown] = useState('')
   const [eventPhase, setEventPhase] = useState<'upcoming' | 'active' | 'ended' | null>(null)
 
+  // Privacy - hide IDs for sneak peeks / marketing
+  const [hideIds, setHideIds] = useState(false)
+
   useEffect(() => {
     setMounted(true)
     loadUserData()
@@ -390,6 +393,11 @@ export default function DashboardPage() {
                 <Shield className="w-3.5 h-3.5" /> Admin
               </Link>
             )}
+            <button onClick={() => setHideIds(!hideIds)} 
+              className={`p-2 rounded-lg transition-colors text-sm ${hideIds ? 'bg-red-500/15 text-red-400' : 'hover:bg-white/5 text-gray-600'}`}
+              title={hideIds ? 'Show IDs' : 'Hide IDs'}>
+              {hideIds ? '🙈' : '👁️'}
+            </button>
             <button onClick={handleRefresh} disabled={refreshing} className="p-2 rounded-lg hover:bg-white/5 transition-colors" title="Refresh">
               <RefreshCw className={`w-4 h-4 text-gray-500 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -401,7 +409,7 @@ export default function DashboardPage() {
       </nav>
 
       {/* News Ticker */}
-      {mounted && newsItems.length > 0 && (
+      {mounted && newsItems.length > 0 && !hideIds && (
         <div className="fixed top-[53px] left-0 right-0 z-40 border-b overflow-hidden" style={{ background: 'rgba(5,5,16,0.9)', borderColor: 'var(--border-dim)' }}>
           <div className="news-ticker py-1.5">
             <div className="news-ticker-content">
@@ -424,7 +432,7 @@ export default function DashboardPage() {
                 <User className="w-6 h-6 text-cyan-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-black" style={{ fontFamily: 'Orbitron, sans-serif' }}>{user?.username || 'Pilot'}</h1>
+                <h1 className="text-2xl font-black" style={{ fontFamily: 'Orbitron, sans-serif' }}>{hideIds ? 'PILOT-••••••' : (user?.username || 'Pilot')}</h1>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>
                   <Calendar className="w-3 h-3 inline mr-1" />
                   Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
