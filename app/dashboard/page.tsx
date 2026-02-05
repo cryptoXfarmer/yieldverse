@@ -10,6 +10,7 @@ import {
   MessageCircle, Send, X, Trophy, Clock, Flame, ArrowRightLeft
 } from 'lucide-react'
 import { supabase, User as UserType } from '@/lib/supabase'
+import { sessionTracker } from '@/lib/sessionTracker'
 import DailyStreak from '@/components/DailyStreak'
 import StarForgeBridge from '@/components/StarForgeBridge'
 
@@ -112,7 +113,11 @@ export default function DashboardPage() {
         .eq('id', session.user.id)
         .single()
 
-      if (!userError) setUser(userData)
+      if (!userError) {
+        setUser(userData)
+        // Start session tracking
+        sessionTracker.startSession(session.user.id)
+      }
 
       // Load wallet
       const { data: walletData, error: walletError } = await supabase
