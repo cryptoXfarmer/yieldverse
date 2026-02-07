@@ -151,6 +151,12 @@ export default function LoginPage() {
               Create Account
             </Link>
           </p>
+          <p className="text-center text-gray-600 mt-3 text-sm">
+            Need a quick start?{' '}
+            <Link href="/help" className="text-cyan-400 hover:underline">
+              New Player Guide
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Globe, Zap, Fuel, Coins, DollarSign, LogOut, 
@@ -14,12 +14,14 @@ import { sessionTracker } from '@/lib/sessionTracker'
 import DailyStreak from '@/components/DailyStreak'
 import StarForgeBridge from '@/components/StarForgeBridge'
 import AnimatedPlanet from '@/components/AnimatedPlanet'
+import NewPlayerTutorial, { shouldShowTutorial } from '@/components/NewPlayerTutorial'
 import type { PlanetVisualType } from '@/lib/planetSpriteConfig'
 
 const ADMIN_EMAILS = ['gtrust1985@gmail.com']
 
 export default function DashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserType | null>(null)
@@ -44,6 +46,9 @@ export default function DashboardPage() {
   // Cashout Notification
   const [showCashoutNotif, setShowCashoutNotif] = useState(false)
 
+  // Tutorial
+  const [showTutorial, setShowTutorial] = useState(false)
+
   // Event
   const [activeEvent, setActiveEvent] = useState<any>(null)
   const [eventCountdown, setEventCountdown] = useState('')
@@ -60,6 +65,19 @@ export default function DashboardPage() {
     loadRecentActivity()
     loadActiveEvent()
   }, [])
+
+  // First-time tutorial (or forced via /dashboard?tutorial=1)
+  useEffect(() => {
+    if (!mounted) return
+    const force = searchParams?.get('tutorial') === '1'
+    if (force) {
+      setShowTutorial(true)
+      return
+    }
+    try {
+      if (shouldShowTutorial()) setShowTutorial(true)
+    } catch {}
+  }, [mounted, searchParams])
 
   // Cashout promo notification — show after 10s
   useEffect(() => {
@@ -398,6 +416,21 @@ export default function DashboardPage() {
           </Link>
           
           <div className="flex items-center gap-3">
+            <Link
+              href="/help"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium hover:bg-white/5 transition-colors"
+              style={{ borderColor: 'var(--border-dim)', color: 'var(--text-secondary)' }}
+              title="Help & Tutorial"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> Help
+            </Link>
+            <button
+              onClick={() => setShowTutorial(true)}
+              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+              title="Open Tutorial"
+            >
+              <MessageCircle className="w-4 h-4 text-cyan-300" />
+            </button>
             {user?.email && ADMIN_EMAILS.includes(user.email) && (
               <Link href="/admin" className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg hover:bg-red-500/20 transition-colors text-xs font-bold text-red-400">
                 <Shield className="w-3.5 h-3.5" /> Admin
@@ -432,6 +465,7 @@ export default function DashboardPage() {
       )}
 
       {/* ═══ CONTENT ═══ */}
+      <NewPlayerTutorial open={showTutorial} onClose={() => setShowTutorial(false)} />
       <div className="relative z-10 pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
 

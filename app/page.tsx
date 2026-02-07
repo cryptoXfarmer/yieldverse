@@ -42,6 +42,7 @@ export default function HomePage() {
             </span>
           </Link>
           <div className="flex items-center gap-3">
+            <Link href="/help" className="btn-ghost px-5 py-2.5 text-sm">Help</Link>
             <Link href="/login" className="btn-ghost px-5 py-2.5 text-sm">Login</Link>
             <Link href="/register" className="btn-primary px-5 py-2.5 text-sm">Register</Link>
           </div>
