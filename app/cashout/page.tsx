@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -8,6 +8,7 @@ import {
   ArrowRight, AlertCircle, CheckCircle, ExternalLink, Mail, Zap, Clock
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import SpotlightTour, { type SpotlightStep } from '@/components/SpotlightTour'
 
 // ALPHA: Fee system
 const REFERRER_FEE_PERCENT = 3 // 3% to referrer
@@ -29,6 +30,58 @@ export default function CashoutPage() {
   const [success, setSuccess] = useState('')
   const [canCashout, setCanCashout] = useState(true)
   const [nextCashoutTime, setNextCashoutTime] = useState<string>('')
+
+  // AAA spotlight tour (optional) — triggered via /cashout?tour=withdraw
+  const [tourOpen, setTourOpen] = useState(false)
+  const [tourMode, setTourMode] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get('tour')
+      if (t) {
+        setTourMode(t)
+        setTourOpen(true)
+      }
+    } catch {}
+  }, [])
+
+  const closeTour = () => {
+    setTourOpen(false)
+    setTourMode(null)
+    try {
+      const params = new URLSearchParams(window.location.search)
+      params.delete('tour')
+      const qs = params.toString()
+      router.replace(qs ? `/cashout?${qs}` : '/cashout')
+    } catch {
+      router.replace('/cashout')
+    }
+  }
+
+  const tourSteps: SpotlightStep[] = useMemo(() => {
+    if (tourMode !== 'withdraw') return []
+    return [
+      {
+        id: 'amount',
+        title: 'Choose amount',
+        body: 'Enter how many YES you want to withdraw (minimum shown in the placeholder).',
+        target: '[data-tour="cashoutAmount"]',
+      },
+      {
+        id: 'email',
+        title: 'Your FaucetPay email',
+        body: 'Paste the email linked to your FaucetPay account. Payout goes there instantly.',
+        target: '[data-tour="faucetpayEmail"]',
+      },
+      {
+        id: 'submit',
+        title: 'Send instant cashout',
+        body: 'Press Instant Cashout to send the payment (1 cashout per 24 hours).',
+        target: '[data-tour="cashoutSubmit"]',
+        nextLabel: 'Done',
+      },
+    ]
+  }, [tourMode])
 
   const MIN_CASHOUT = 10
   const YES_TO_USD = 0.001
@@ -203,6 +256,7 @@ export default function CashoutPage() {
 
   return (
     <div className="relative min-h-screen">
+      <SpotlightTour open={tourOpen} steps={tourSteps} onClose={closeTour} />
       <div className="stars">{mounted && [...Array(60)].map((_, i) => <div key={i} className="star" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 3}s` }} />)}</div>
       <div className="nebula" />
 
@@ -264,7 +318,7 @@ export default function CashoutPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Amount (YES)</label>
-                <input type="number" value={cashoutAmount} onChange={(e) => setCashoutAmount(e.target.value)} placeholder={`Min: ${MIN_CASHOUT} YES`} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400" disabled={!canCashout} />
+                <input type="number" data-tour="cashoutAmount" value={cashoutAmount} onChange={(e) => setCashoutAmount(e.target.value)} placeholder={`Min: ${MIN_CASHOUT} YES`} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400" disabled={!canCashout} />
                 {cashoutAmount && (
                   <p className="text-sm text-green-400 mt-2 font-bold">
                     = {(parseInt(cashoutAmount) * 100 / 100000000).toFixed(8)} LTC
@@ -274,14 +328,14 @@ export default function CashoutPage() {
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2"><Mail className="w-4 h-4" />FaucetPay Email</label>
-                <input type="email" value={faucetpayEmail} onChange={(e) => setFaucetpayEmail(e.target.value)} placeholder="your-email@faucetpay.io" className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400" disabled={!canCashout} />
+                <input type="email" data-tour="faucetpayEmail" value={faucetpayEmail} onChange={(e) => setFaucetpayEmail(e.target.value)} placeholder="your-email@faucetpay.io" className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400" disabled={!canCashout} />
               </div>
 
               <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
                 <p className="text-green-400 text-sm"><strong>⚡ Fixed Rate:</strong> 1000 YES = 0.001 LTC • 100 YES = 0.0001 LTC • Min: {MIN_CASHOUT} YES</p>
               </div>
 
-              <button onClick={handleInstantCashout} disabled={!canCashout || processing || !cashoutAmount || parseInt(cashoutAmount) < MIN_CASHOUT || !faucetpayEmail} className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+              <button onClick={handleInstantCashout} data-tour="cashoutSubmit" disabled={!canCashout || processing || !cashoutAmount || parseInt(cashoutAmount) < MIN_CASHOUT || !faucetpayEmail} className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
                 {processing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <><Zap className="w-5 h-5" />{canCashout ? 'Instant Cashout' : 'Cooldown Active'}</>}
               </button>
             </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import AnimatedPlanet from '@/components/AnimatedPlanet'
+import SpotlightTour, { type SpotlightStep } from '@/components/SpotlightTour'
 import {
   type PlanetRarity, type PlanetVisualType,
   generateRandomVisuals, getVisualName, RARITY_GLOW_COLORS,
@@ -67,6 +68,57 @@ export default function PlanetsPage() {
   const [selectedPlanet, setSelectedPlanet] = useState<Planet | null>(null)
   const [revealPlanet, setRevealPlanet] = useState<Planet | null>(null)
   const [revealPhase, setRevealPhase] = useState<'idle' | 'scanning' | 'reveal' | 'done'>('idle')
+
+  // AAA style guided tour (optional) — triggered via /planets?tour=claim
+  const [tourOpen, setTourOpen] = useState(false)
+  const [tourMode, setTourMode] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get('tour')
+      if (t) {
+        setTourMode(t)
+        setTourOpen(true)
+      }
+    } catch {}
+  }, [])
+
+  const closeTour = () => {
+    setTourOpen(false)
+    setTourMode(null)
+    try {
+      const params = new URLSearchParams(window.location.search)
+      params.delete('tour')
+      const qs = params.toString()
+      router.replace(qs ? `/planets?${qs}` : '/planets')
+    } catch {
+      router.replace('/planets')
+    }
+  }
+
+  const tourSteps: SpotlightStep[] = useMemo(() => {
+    if (tourMode !== 'claim') return []
+
+    const hasPlanets = (planets?.length || 0) > 0
+    return [
+      {
+        id: 'claim',
+        title: 'Claim your starter planet',
+        body: hasPlanets
+          ? 'You already have planets — nice. Select one to see details and bonuses.'
+          : 'Click here to claim your free starter planet. It gives bonuses and unlocks tile gameplay.',
+        target: hasPlanets ? '[data-tour="planetGrid"]' : '[data-tour="claimFreePlanet"]',
+      },
+      {
+        id: 'next',
+        title: 'Next: convert Fuel → YES',
+        body: 'After you play Energy Empire and craft Fuel, you can convert it to YES on your dashboard.',
+        target: '[data-tour="planetGrid"]',
+        nextHref: '/dashboard?convert=1&tour=convertModal',
+        nextLabel: 'Go to Dashboard',
+      },
+    ]
+  }, [tourMode, planets])
 
   useEffect(() => { setMounted(true); loadData() }, [])
 
@@ -178,6 +230,7 @@ export default function PlanetsPage() {
 
   return (
     <div className="relative min-h-screen">
+      <SpotlightTour open={tourOpen} steps={tourSteps} onClose={closeTour} />
       <div className="stars">{mounted && [...Array(80)].map((_, i) => (
         <div key={i} className="star" style={{ left: `${Math.random()*100}%`, top: `${Math.random()*100}%`, animationDelay: `${Math.random()*3}s`, animationDuration: `${2+Math.random()*2}s` }} />
       ))}</div>
@@ -277,7 +330,7 @@ export default function PlanetsPage() {
               <Gift className="w-16 h-16 mx-auto mb-4 text-cyan-400" />
               <h2 className="text-2xl font-bold mb-2">Claim Your Free Starter Planet!</h2>
               <p className="text-gray-400 mb-6">Every new Pilot gets one free Common planet to start their journey.</p>
-              <button onClick={claimFreePlanet} disabled={claiming}
+              <button onClick={claimFreePlanet} data-tour="claimFreePlanet" disabled={claiming}
                 className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl font-bold text-lg hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2 mx-auto">
                 {claiming ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                 {claiming ? 'Scanning Deep Space...' : 'Claim Free Planet'}
@@ -289,7 +342,7 @@ export default function PlanetsPage() {
           {planets.length > 0 && (
             <>
               <h2 className="text-2xl font-bold mb-6">Your Planets</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8" data-tour="planetGrid">
                 {planets.map((planet) => {
                   const colors = RARITY_COLORS[planet.rarity]
                   return (

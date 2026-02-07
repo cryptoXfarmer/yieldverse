@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -15,6 +15,7 @@ import DailyStreak from '@/components/DailyStreak'
 import StarForgeBridge from '@/components/StarForgeBridge'
 import AnimatedPlanet from '@/components/AnimatedPlanet'
 import NewPlayerTutorial, { shouldShowTutorial } from '@/components/NewPlayerTutorial'
+import SpotlightTour, { type SpotlightStep } from '@/components/SpotlightTour'
 import type { PlanetVisualType } from '@/lib/planetSpriteConfig'
 
 const ADMIN_EMAILS = ['gtrust1985@gmail.com']
@@ -49,6 +50,10 @@ export default function DashboardClient() {
   // Tutorial
   const [showTutorial, setShowTutorial] = useState(false)
 
+  // Guided Spotlight Tour (AAA style)
+  const [showSpotlight, setShowSpotlight] = useState(false)
+  const [spotlightMode, setSpotlightMode] = useState<string | null>(null)
+
   // Event
   const [activeEvent, setActiveEvent] = useState<any>(null)
   const [eventCountdown, setEventCountdown] = useState('')
@@ -78,6 +83,115 @@ export default function DashboardClient() {
       if (shouldShowTutorial()) setShowTutorial(true)
     } catch {}
   }, [mounted, searchParams])
+
+  // Deep links from tutorial buttons (/dashboard?convert=1 or ?sos=1)
+  useEffect(() => {
+    if (!mounted) return
+    const convert = searchParams?.get('convert') === '1'
+    if (convert) setShowConvert(true)
+    const sos = searchParams?.get('sos') === '1'
+    if (sos) setShowSOS(true)
+  }, [mounted, searchParams])
+
+  // Spotlight guided tour trigger (via /dashboard?tour=...)
+  useEffect(() => {
+    if (!mounted) return
+    const t = searchParams?.get('tour')
+    if (t) {
+      setSpotlightMode(t)
+      setShowSpotlight(true)
+    }
+  }, [mounted, searchParams])
+
+  const clearTourParam = () => {
+    try {
+      const params = new URLSearchParams(searchParams ? Array.from(searchParams.entries()) : [])
+      params.delete('tour')
+      const q = params.toString()
+      router.replace(q ? `/dashboard?${q}` : '/dashboard')
+    } catch {
+      router.replace('/dashboard')
+    }
+  }
+
+  const spotlightSteps: SpotlightStep[] = useMemo(() => {
+    const base: SpotlightStep[] = [
+      {
+        id: 'wallet',
+        title: 'Your Wallet (Energy / Fuel / YES)',
+        body: 'This is your in‑game economy. Fuel is the bridge — YES is the universal token you can cash out.',
+        target: '[data-tour="walletCard"]',
+      },
+      {
+        id: 'convert',
+        title: 'Convert Fuel → YES',
+        body: 'Once you have 100+ Fuel, convert to YES here. (The tutorial can deep‑link directly into the converter.)',
+        target: '[data-tour="openConvertButton"]',
+      },
+      {
+        id: 'planets',
+        title: 'Planets = Bonuses + Tiles',
+        body: 'Planets boost your production and unlock exploration gameplay. Grab a starter planet if you don’t have one yet.',
+        target: '[data-tour="myPlanetsCard"]',
+        nextHref: '/planets?tour=claim',
+        nextLabel: 'Go Claim a Planet',
+      },
+    ]
+
+    if (spotlightMode === 'convertModal') {
+      return [
+        {
+          id: 'amount',
+          title: 'Pick how much YES you want',
+          body: 'Type a YES amount (or hit Max). It automatically calculates Fuel spent.',
+          target: '[data-tour="convertAmount"]',
+        },
+        {
+          id: 'convertNow',
+          title: 'Confirm the conversion',
+          body: 'This swaps your Fuel into YES and updates your wallet instantly.',
+          target: '[data-tour="convertNow"]',
+        },
+        {
+          id: 'cashout',
+          title: 'Cashout when ready',
+          body: 'When you have enough YES, you can withdraw to LTC via FaucetPay.',
+          target: '[data-tour="cashoutLink"]',
+          nextHref: '/cashout?tour=withdraw',
+          nextLabel: 'Go to Cashout',
+        },
+      ]
+    }
+
+    if (spotlightMode === 'converter') return base.slice(0, 2)
+    if (spotlightMode === 'planets') return base.slice(2)
+    if (spotlightMode === 'cashout') {
+      return [
+        {
+          id: 'cashout',
+          title: 'Open Instant Cashout',
+          body: 'This page sends payments instantly to FaucetPay. (1 cashout / 24h limit.)',
+          target: '[data-tour="cashoutLink"]',
+          nextHref: '/cashout?tour=withdraw',
+          nextLabel: 'Open Cashout',
+        },
+      ]
+    }
+    if (spotlightMode === 'sos') {
+      return [
+        {
+          id: 'sos',
+          title: 'SOS Support',
+          body: 'Something feels off? Tap here and message the team — we’ll look at your account state.',
+          target: '[data-tour="sosButton"]',
+        },
+      ]
+    }
+
+    // Default: full mini‑tour
+    return base
+  }, [spotlightMode, router, searchParams])
+
 
   // Cashout promo notification — show after 10s
   useEffect(() => {
@@ -466,6 +580,15 @@ export default function DashboardClient() {
 
       {/* ═══ CONTENT ═══ */}
       <NewPlayerTutorial open={showTutorial} onClose={() => setShowTutorial(false)} />
+      <SpotlightTour
+        open={showSpotlight}
+        steps={spotlightSteps}
+        onClose={() => {
+          setShowSpotlight(false)
+          setSpotlightMode(null)
+          clearTourParam()
+        }}
+      />
       <div className="relative z-10 pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
 
@@ -579,7 +702,7 @@ export default function DashboardClient() {
 
           {/* ═══ WALLET + POOL ═══ */}
           <div className="grid md:grid-cols-2 gap-5 mb-8">
-            <div className="glass-card p-5" style={{ borderColor: 'rgba(124,58,237,0.15)' }}>
+            <div className="glass-card p-5" data-tour="walletCard" style={{ borderColor: 'rgba(124,58,237,0.15)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-4 h-4 text-purple-400" />
                 <h2 className="text-sm font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>Current Wallet</h2>
@@ -598,7 +721,7 @@ export default function DashboardClient() {
                   <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>YES</p>
                 </div>
               </div>
-              <button onClick={() => setShowConvert(true)} disabled={(wallet?.fuel || 0) < 100}
+              <button onClick={() => setShowConvert(true)} data-tour="openConvertButton" disabled={(wallet?.fuel || 0) < 100}
                 className="btn-gold w-full py-3 text-sm rounded-xl disabled:opacity-30 disabled:cursor-not-allowed">
                 <Flame className="w-4 h-4" /> Convert Fuel → YES
               </button>
@@ -617,7 +740,7 @@ export default function DashboardClient() {
                   {faucetPayBalance !== null ? formatLTC(faucetPayBalance) : '---'} LTC
                 </p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Available for cashouts</p>
-                <Link href="/cashout" className="btn-emerald mt-4 px-6 py-2.5 text-sm rounded-xl">
+                <Link href="/cashout" data-tour="cashoutLink" className="btn-emerald mt-4 px-6 py-2.5 text-sm rounded-xl">
                   <DollarSign className="w-4 h-4" /> Cashout
                 </Link>
               </div>
@@ -625,7 +748,7 @@ export default function DashboardClient() {
           </div>
 
           {/* ═══ PLANETS ═══ */}
-          <div className="glass-card p-5 mb-8">
+          <div className="glass-card p-5 mb-8" data-tour="myPlanetsCard">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-purple-400" />
@@ -815,6 +938,7 @@ export default function DashboardClient() {
                         value={convertAmount}
                         onChange={(e) => setConvertAmount(e.target.value)}
                         placeholder="Amount of YES"
+                        data-tour="convertAmount"
                         className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-cyan-400 focus:outline-none"
                       />
                       <button
@@ -847,6 +971,7 @@ export default function DashboardClient() {
                   <button
                     onClick={handleConvertFuel}
                     disabled={converting || !convertAmount || parseInt(convertAmount) < 1 || (parseInt(convertAmount) * 100) > (wallet?.fuel || 0)}
+                    data-tour="convertNow"
                     className="w-full py-4 bg-gradient-to-r from-orange-500 to-cyan-500 rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {converting ? (
@@ -866,7 +991,7 @@ export default function DashboardClient() {
       )}
 
       {/* ═══ SOS BUTTON ═══ */}
-      <button onClick={() => setShowSOS(true)}
+      <button onClick={() => setShowSOS(true)} data-tour="sosButton"
         className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 hover:brightness-110 rounded-xl shadow-lg shadow-red-500/20 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
         title="Need help?">
         <MessageCircle className="w-5 h-5 text-white" />

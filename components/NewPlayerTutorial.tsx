@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   X,
   ChevronLeft,
@@ -35,6 +35,8 @@ export default function NewPlayerTutorial({
   open: boolean
   onClose: () => void
 }) {
+  const router = useRouter()
+
   const steps: Step[] = useMemo(
     () => [
       {
@@ -46,7 +48,7 @@ export default function NewPlayerTutorial({
           'You earn resources in games, convert to YES, and cash out via FaucetPay.',
           'Daily streaks + events boost earnings (and it stays 100% free).',
         ],
-        cta: { label: 'See the Hub', href: '/dashboard' },
+        cta: { label: 'Start: Claim a Planet', href: '/planets?tour=claim' },
       },
       {
         title: 'Play Energy Empire',
@@ -68,7 +70,7 @@ export default function NewPlayerTutorial({
           'Each planet has rarity + bonuses (Energy, rare drops, tiles).',
           'Scan/explore tiles to find resources, factories, artifacts, etc.',
         ],
-        cta: { label: 'Go to Planets', href: '/planets' },
+        cta: { label: 'Go to Planets', href: '/planets?tour=claim' },
       },
       {
         title: 'Convert Fuel → YES',
@@ -79,7 +81,7 @@ export default function NewPlayerTutorial({
           'YES is tracked in your wallet and used for upgrades/cashouts.',
           'Keep an eye on streak rewards and event multipliers.',
         ],
-        cta: { label: 'Back to Dashboard', href: '/dashboard' },
+        cta: { label: 'Open Converter', href: '/dashboard?convert=1&tour=convertModal' },
       },
       {
         title: 'Cashout to Crypto',
@@ -90,7 +92,7 @@ export default function NewPlayerTutorial({
           'Minimum cashout is small, so you can test quickly.',
           'Always double‑check your wallet details before confirming.',
         ],
-        cta: { label: 'Open Cashout', href: '/cashout' },
+        cta: { label: 'Open Cashout', href: '/cashout?tour=withdraw' },
       },
       {
         title: 'Events + Streaks',
@@ -243,20 +245,34 @@ export default function NewPlayerTutorial({
 
               {current.cta && (
                 <div className="mt-5">
-                  {current.cta.external ? (
-                    <a
-                      href={current.cta.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-cyan w-full py-3 rounded-xl text-sm"
-                    >
-                      <ExternalLink className="w-4 h-4" /> {current.cta.label} <ArrowRight className="w-4 h-4" />
-                    </a>
-                  ) : (
-                    <Link href={current.cta.href} className="btn-cyan w-full py-3 rounded-xl text-sm">
-                      <ArrowRight className="w-4 h-4" /> {current.cta.label}
-                    </Link>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Mark tutorial as done when the player uses a CTA,
+                      // so it doesn't instantly reopen on route/query changes.
+                      close(true)
+                      const cta = current.cta
+                      if (!cta) return
+                      setTimeout(() => {
+                        if (cta.external) {
+                          window.open(cta.href, '_blank', 'noopener,noreferrer')
+                        } else {
+                          router.push(cta.href)
+                        }
+                      }, 50)
+                    }}
+                    className="btn-cyan w-full py-3 rounded-xl text-sm"
+                  >
+                    {current.cta.external ? (
+                      <>
+                        <ExternalLink className="w-4 h-4" /> {current.cta.label} <ArrowRight className="w-4 h-4" />
+                      </>
+                    ) : (
+                      <>
+                        <ArrowRight className="w-4 h-4" /> {current.cta.label}
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
             </div>
