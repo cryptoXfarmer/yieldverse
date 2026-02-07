@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import HexGrid, { Tile, TileType, DroneState } from '@/components/HexGrid'
+import AnimatedPlanet from '@/components/AnimatedPlanet'
 
 const EXPLORE_COST = 25 // Fuel pour explorer
 const CLAIM_INTERVAL = 6 * 60 * 60 * 1000 // 6 heures en millisecondes
@@ -657,7 +658,12 @@ function PlanetExploreContent() {
             </Link>
             <div>
               <h1 className="font-bold flex items-center gap-2">
-                <Globe className="w-5 h-5 text-purple-400" />
+                <AnimatedPlanet
+                  spriteSheet="/sprites/legendary_planet.png"
+                  cols={4} rows={5} fps={10} size={28}
+                  rarity={(planet.rarity as any) || 'common'}
+                  titleOffset={115}
+                />
                 {planet.name}
               </h1>
               <p className="text-xs text-gray-400 capitalize">{planet.rarity} • Tier {planet.tier}</p>

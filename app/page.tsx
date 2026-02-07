@@ -3,6 +3,7 @@
 import { Rocket, Zap, Star, Globe, Coins, ArrowRight, Sparkles, User, Shield, TrendingUp, Gift } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import AnimatedPlanet from '@/components/AnimatedPlanet'
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false)
@@ -56,13 +57,12 @@ export default function HomePage() {
             {/* Planet logo */}
             <div className="flex justify-center mb-8">
               <div className="relative animate-float">
-                <div className="planet-hero">
-                  <Globe className="w-12 h-12 text-white/60 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                </div>
-                {/* Orbiting dot */}
-                <div className="absolute inset-0" style={{ animation: 'spin 8s linear infinite' }}>
-                  <div className="absolute -top-2 left-1/2 w-2.5 h-2.5 bg-cyan-400 rounded-full" style={{ boxShadow: '0 0 12px rgba(0,240,255,0.8)' }} />
-                </div>
+                <AnimatedPlanet
+                  spriteSheet="/sprites/legendary_planet.png"
+                  cols={4} rows={5} fps={10} size={140}
+                  rarity="legendary"
+                  titleOffset={115}
+                />
               </div>
             </div>
 

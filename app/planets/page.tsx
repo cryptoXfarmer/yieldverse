@@ -8,6 +8,7 @@ import {
   Lock, Star, TrendingUp, Gift, RefreshCw, Plus
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import AnimatedPlanet from '@/components/AnimatedPlanet'
 
 type Planet = {
   id: string
@@ -183,28 +184,16 @@ export default function PlanetsPage() {
   }
 
   const renderPlanetVisual = (planet: Planet, size: 'sm' | 'md' | 'lg' = 'md') => {
-    const colors = RARITY_COLORS[planet.rarity]
-    const sizeClasses = { sm: 'w-16 h-16', md: 'w-24 h-24', lg: 'w-40 h-40' }
-    const seed = planet.name.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
-    const rotation = seed % 360
-    const rings = seed % 3 === 0
-    
+    const sizeMap = { sm: 56, md: 90, lg: 160 }
     return (
-      <div className={`relative ${sizeClasses[size]}`}>
-        <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${colors.bg} shadow-lg ${colors.glow}`}
-          style={{ transform: `rotate(${rotation}deg)`, boxShadow: `0 0 ${size === 'lg' ? 60 : 30}px rgba(107, 33, 255, 0.4), inset -${size === 'lg' ? 20 : 10}px -${size === 'lg' ? 20 : 10}px ${size === 'lg' ? 40 : 20}px rgba(0,0,0,0.5)` }}>
-          <div className="absolute inset-2 rounded-full opacity-30" style={{ background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 50%)` }} />
-          <div className="absolute w-1/4 h-1/4 rounded-full bg-black/20" style={{ top: '20%', left: '60%' }} />
-          <div className="absolute w-1/6 h-1/6 rounded-full bg-black/20" style={{ top: '50%', left: '30%' }} />
-        </div>
-        {rings && <div className={`absolute inset-0 border-2 ${colors.border} rounded-full opacity-50`} style={{ transform: 'rotateX(70deg) scale(1.4)', borderWidth: size === 'lg' ? 3 : 2 }} />}
-        <div className={`absolute inset-0 rounded-full blur-xl opacity-30 bg-gradient-to-br ${colors.bg}`} style={{ transform: 'scale(1.2)' }} />
-        {size !== 'sm' && (
-          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-xs font-bold ${colors.text} bg-black/50 border ${colors.border}`}>
-            {planet.rarity.toUpperCase()}
-          </div>
-        )}
-      </div>
+      <AnimatedPlanet
+        spriteSheet="/sprites/legendary_planet.png"
+        cols={4} rows={5} fps={10}
+        size={sizeMap[size]}
+        rarity={planet.rarity}
+        titleOffset={115}
+        showLabel={size !== 'sm'}
+      />
     )
   }
 

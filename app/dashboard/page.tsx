@@ -13,6 +13,7 @@ import { supabase, User as UserType } from '@/lib/supabase'
 import { sessionTracker } from '@/lib/sessionTracker'
 import DailyStreak from '@/components/DailyStreak'
 import StarForgeBridge from '@/components/StarForgeBridge'
+import AnimatedPlanet from '@/components/AnimatedPlanet'
 
 const ADMIN_EMAILS = ['gtrust1985@gmail.com']
 
@@ -609,9 +610,14 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {planets.slice(0, 4).map((planet) => (
                   <Link key={planet.id} href={`/planet?id=${planet.id}`}
-                    className="rounded-xl p-4 text-center group transition-all hover:bg-white/5" style={{ background: 'var(--bg-card)' }}>
-                    <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 group-hover:scale-110 transition-transform planet-glow" />
-                    <p className="font-bold text-xs truncate">{planet.name}</p>
+                    className="rounded-xl p-4 text-center group transition-all hover:bg-white/5 flex flex-col items-center" style={{ background: 'var(--bg-card)' }}>
+                    <AnimatedPlanet
+                      spriteSheet="/sprites/legendary_planet.png"
+                      cols={4} rows={5} fps={8} size={52}
+                      rarity={planet.rarity || 'common'}
+                      titleOffset={115}
+                    />
+                    <p className="font-bold text-xs truncate mt-2">{planet.name}</p>
                     <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{planet.rarity}</p>
                   </Link>
                 ))}
