@@ -35,7 +35,8 @@ export default function EventPage() {
   const [myUserId, setMyUserId] = useState<string>('')
   const [countdown, setCountdown] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const [phase, setPhase] = useState<'upcoming' | 'active' | 'ended'>('upcoming')
+  // We hide ended events from the UI (when an event finishes, we show "No Active Event")
+  const [phase, setPhase] = useState<'upcoming' | 'active'>('upcoming')
 
   useEffect(() => {
     loadEvent()
@@ -57,8 +58,8 @@ export default function EventPage() {
         setPhase('active')
         setCountdown(formatDuration(end - now))
       } else {
-        setPhase('ended')
-        setCountdown('Event Ended!')
+        // Event finished → hide it from the UI
+        setEvent(null)
       }
     }, 1000)
     return () => clearInterval(timer)
@@ -84,7 +85,7 @@ export default function EventPage() {
       const { data: eventList } = await supabase
         .from('events')
         .select('*')
-        .in('status', ['upcoming', 'active', 'ended'])
+        .in('status', ['upcoming', 'active'])
         .order('starts_at', { ascending: false })
         .limit(1)
 
@@ -103,6 +104,16 @@ export default function EventPage() {
       if (eventData.status === 'active' && now >= end) {
         await supabase.from('events').update({ status: 'ended' }).eq('id', eventData.id)
         eventData.status = 'ended'
+      }
+
+      // If it just ended, don't show it.
+      if (eventData.status === 'ended') {
+        setEvent(null)
+        setScores([])
+        setMyScore(0)
+        setMyRank(0)
+        setLoading(false)
+        return
       }
 
       setEvent(eventData)
@@ -228,11 +239,6 @@ export default function EventPage() {
                   ⏳ STARTING SOON
                 </span>
               )}
-              {phase === 'ended' && (
-                <span className="px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full">
-                  ✅ ENDED
-                </span>
-              )}
             </div>
 
             <h2 className="text-2xl md:text-3xl font-black mb-2">{event.name}</h2>
@@ -241,7 +247,7 @@ export default function EventPage() {
             {/* Countdown */}
             <div className="bg-black/40 rounded-xl p-4 inline-block">
               <p className="text-xs text-gray-400 mb-1">
-                {phase === 'upcoming' ? '⏳ Starts in' : phase === 'active' ? '⏰ Ends in' : '🏁 Event'}
+                {phase === 'upcoming' ? '⏳ Starts in' : '⏰ Ends in'}
               </p>
               <p className="text-3xl md:text-4xl font-mono font-black text-yellow-400">
                 {countdown}

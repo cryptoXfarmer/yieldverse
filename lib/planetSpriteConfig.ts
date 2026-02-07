@@ -84,8 +84,17 @@ export const RARITY_GLOW_COLORS: Record<PlanetRarity, {
 
 // ═══ ANIMATION SPEED PER RARITY ═══
 export const RARITY_FPS: Record<PlanetRarity, number> = {
-  common: 6, rare: 8, epic: 10, legendary: 12,
+  // Slower rotation (the sprite frames represent the planet spinning)
+  common: 4, rare: 5, epic: 6, legendary: 7,
 }
+
+// Global cinematic multiplier for planet rotation speed.
+// Lower = slower. Tweak this single number to speed up / slow down everywhere.
+// Suggested range:
+//   - 0.55 = chill
+//   - 0.45 = slow
+//   - 0.35 = cinematic (default)
+export const PLANET_ROTATION_SPEED_MULTIPLIER = 0.35
 
 // ═══ HELPER FUNCTIONS ═══
 

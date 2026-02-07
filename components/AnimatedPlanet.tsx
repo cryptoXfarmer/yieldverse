@@ -5,6 +5,7 @@ import {
   type PlanetRarity, type PlanetVisualType,
   SPRITE_COLS, SPRITE_ROWS, SPRITE_TITLE_OFFSET,
   RARITY_FPS, RARITY_GLOW_COLORS, getSpriteSheet,
+  PLANET_ROTATION_SPEED_MULTIPLIER,
 } from '@/lib/planetSpriteConfig'
 
 // ═══════════════════════════════════════════════════════
@@ -46,7 +47,9 @@ function AnimatedPlanetInner({
   const [loaded, setLoaded] = useState(false)
 
   const sheetPath = spriteSheet ?? getSpriteSheet(rarity, sheetIndex)
-  const animFps = fps ?? RARITY_FPS[rarity]
+  const baseFps = fps ?? RARITY_FPS[rarity]
+  // Apply global cinematic multiplier (also affects any per-instance fps override)
+  const animFps = Math.max(0.25, baseFps * PLANET_ROTATION_SPEED_MULTIPLIER)
   const glow = RARITY_GLOW_COLORS[rarity]
   const row = Math.max(0, Math.min(visualType, SPRITE_ROWS - 1))
 

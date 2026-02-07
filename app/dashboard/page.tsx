@@ -47,7 +47,8 @@ export default function DashboardPage() {
   // Event
   const [activeEvent, setActiveEvent] = useState<any>(null)
   const [eventCountdown, setEventCountdown] = useState('')
-  const [eventPhase, setEventPhase] = useState<'upcoming' | 'active' | 'ended' | null>(null)
+  // We don't show ended events in the UI.
+  const [eventPhase, setEventPhase] = useState<'upcoming' | 'active' | null>(null)
 
   // Privacy - hide IDs for sneak peeks / marketing
   const [hideIds, setHideIds] = useState(false)
@@ -92,8 +93,10 @@ export default function DashboardPage() {
         const s = Math.floor((ms % 60000) / 1000)
         setEventCountdown(d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m ${s}s`)
       } else {
-        setEventPhase('ended')
-        setEventCountdown('Ended!')
+        // Event finished → hide banner
+        setEventPhase(null)
+        setEventCountdown('')
+        setActiveEvent(null)
       }
     }, 1000)
     return () => clearInterval(timer)
