@@ -58,10 +58,10 @@ export default function HomePage() {
             <div className="flex justify-center mb-8">
               <div className="relative animate-float">
                 <AnimatedPlanet
-                  spriteSheet="/sprites/legendary_planet.png"
-                  cols={4} rows={5} fps={10} size={140}
                   rarity="legendary"
-                  titleOffset={115}
+                  sheetIndex={0}
+                  visualType={4}
+                  size={140}
                 />
               </div>
             </div>

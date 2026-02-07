@@ -659,10 +659,10 @@ function PlanetExploreContent() {
             <div>
               <h1 className="font-bold flex items-center gap-2">
                 <AnimatedPlanet
-                  spriteSheet="/sprites/legendary_planet.png"
-                  cols={4} rows={5} fps={10} size={28}
                   rarity={(planet.rarity as any) || 'common'}
-                  titleOffset={115}
+                  visualType={(planet.visual_type ?? ((planet.name || '').split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) % 5)) as any}
+                  sheetIndex={planet.sprite_sheet ?? 0}
+                  size={28}
                 />
                 {planet.name}
               </h1>

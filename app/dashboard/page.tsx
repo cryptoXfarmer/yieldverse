@@ -14,6 +14,7 @@ import { sessionTracker } from '@/lib/sessionTracker'
 import DailyStreak from '@/components/DailyStreak'
 import StarForgeBridge from '@/components/StarForgeBridge'
 import AnimatedPlanet from '@/components/AnimatedPlanet'
+import type { PlanetVisualType } from '@/lib/planetSpriteConfig'
 
 const ADMIN_EMAILS = ['gtrust1985@gmail.com']
 
@@ -608,19 +609,18 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {planets.slice(0, 4).map((planet) => (
-                  <Link key={planet.id} href={`/planet?id=${planet.id}`}
-                    className="rounded-xl p-4 text-center group transition-all hover:bg-white/5 flex flex-col items-center" style={{ background: 'var(--bg-card)' }}>
-                    <AnimatedPlanet
-                      spriteSheet="/sprites/legendary_planet.png"
-                      cols={4} rows={5} fps={8} size={52}
-                      rarity={planet.rarity || 'common'}
-                      titleOffset={115}
-                    />
-                    <p className="font-bold text-xs truncate mt-2">{planet.name}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{planet.rarity}</p>
-                  </Link>
-                ))}
+                {planets.slice(0, 4).map((planet) => {
+                  const vt = (planet.visual_type ?? ((planet.name || '').split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) % 5)) as PlanetVisualType
+                  const si = planet.sprite_sheet ?? 0
+                  return (
+                    <Link key={planet.id} href={`/planet?id=${planet.id}`}
+                      className="rounded-xl p-4 text-center group transition-all hover:bg-white/5 flex flex-col items-center" style={{ background: 'var(--bg-card)' }}>
+                      <AnimatedPlanet rarity={planet.rarity || 'common'} visualType={vt} sheetIndex={si} size={52} />
+                      <p className="font-bold text-xs truncate mt-2">{planet.name}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{planet.rarity}</p>
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </div>
