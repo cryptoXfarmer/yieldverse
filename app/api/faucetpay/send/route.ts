@@ -37,8 +37,6 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json()
 
-    console.log('FaucetPay response:', data)
-
     if (data.status === 200) {
       return NextResponse.json({
         success: true,

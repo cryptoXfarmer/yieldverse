@@ -483,7 +483,7 @@ export default function JoinPage() {
 
         <footer className="jfooter">
           <p>© 2026 <a href="https://yieldverse.io">YieldVerse</a> — YES Metaverse · Built with ⚡</p>
-          <p style={{marginTop:'0.5rem'}}><a href="https://x.com/Crypto_FarmerX" target="_blank" rel="noopener noreferrer">🐦 X</a> · <a href="https://www.facebook.com/profile.php?id=61586569664260" target="_blank" rel="noopener noreferrer">📘 Facebook</a></p>
+          <p style={{marginTop:'0.5rem'}}><a href="https://x.com/Crypto_FarmerX" target="_blank" rel="noopener noreferrer">🐦 X</a> · <a href="https://www.facebook.com/profile.php?id=61586569664260" target="_blank" rel="noopener noreferrer">📘 Facebook</a> · <a href="https://www.tiktok.com/@yesmetaverse" target="_blank" rel="noopener noreferrer">🎵 TikTok</a> · <a href="https://www.youtube.com/@YesMetaverse" target="_blank" rel="noopener noreferrer">📺 YouTube</a></p>
         </footer>
       </div>
     </>

@@ -7,6 +7,8 @@ import { Globe, Rocket, ArrowRight, Zap, Shield, Target, Heart, ChevronDown, Ext
 const SOCIAL = {
   x: 'https://x.com/Crypto_FarmerX',
   fb: 'https://www.facebook.com/profile.php?id=61586569664260',
+  tiktok: 'https://www.tiktok.com/@yesmetaverse',
+  youtube: 'https://www.youtube.com/@YesMetaverse',
 }
 
 function Reveal({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -288,6 +290,8 @@ export default function NewsPage() {
               <a href="https://energy-empire.space" target="_blank" rel="noopener noreferrer" className="text-gray-500 text-sm hover:text-cyan-400 transition-colors inline-flex items-center gap-1">Energy Empire<ExternalLink className="w-3 h-3" /></a>
               <a href={SOCIAL.x} target="_blank" rel="noopener noreferrer" className="text-gray-500 text-sm hover:text-cyan-400 transition-colors">🐦 Twitter / X</a>
               <a href={SOCIAL.fb} target="_blank" rel="noopener noreferrer" className="text-gray-500 text-sm hover:text-blue-400 transition-colors">📘 Facebook</a>
+              <a href={SOCIAL.tiktok} target="_blank" rel="noopener noreferrer" className="text-gray-500 text-sm hover:text-pink-400 transition-colors">🎵 TikTok</a>
+              <a href={SOCIAL.youtube} target="_blank" rel="noopener noreferrer" className="text-gray-500 text-sm hover:text-red-400 transition-colors">📺 YouTube</a>
             </div>
             <p className="text-gray-700 text-xs">© 2026 YieldVerse Metaverse. All rights reserved.</p>
           </div>

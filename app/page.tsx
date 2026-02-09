@@ -42,7 +42,6 @@ export default function HomePage() {
             </span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/help" className="btn-ghost px-5 py-2.5 text-sm">Help</Link>
             <Link href="/login" className="btn-ghost px-5 py-2.5 text-sm">Login</Link>
             <Link href="/register" className="btn-primary px-5 py-2.5 text-sm">Register</Link>
           </div>
@@ -318,6 +317,8 @@ export default function HomePage() {
               <Link href="/news" className="text-gray-600 text-sm hover:text-cyan-400 transition-colors">📰 News</Link>
               <a href="https://x.com/Crypto_FarmerX" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-sm hover:text-cyan-400 transition-colors">𝕏 Twitter</a>
               <a href="https://www.facebook.com/profile.php?id=61586569664260" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-sm hover:text-blue-400 transition-colors">📘 Facebook</a>
+              <a href="https://www.tiktok.com/@yesmetaverse" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-sm hover:text-pink-400 transition-colors">🎵 TikTok</a>
+              <a href="https://www.youtube.com/@YesMetaverse" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-sm hover:text-red-400 transition-colors">📺 YouTube</a>
             </div>
             <p className="text-xs text-gray-700">© 2026 YieldVerse Metaverse. All rights reserved.</p>
           </div>

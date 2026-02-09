@@ -288,12 +288,6 @@ export default function RegisterPage() {
               Login
             </Link>
           </p>
-          <p className="text-center text-gray-600 mt-3 text-sm">
-            New here?{' '}
-            <Link href="/help" className="text-cyan-400 hover:underline">
-              Read the New Player Guide
-            </Link>
-          </p>
         </div>
       </div>
     </div>
