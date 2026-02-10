@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Exo_2 } from 'next/font/google'
 import './globals.css'
+import AdBanner from '@/components/AdBanner'
 
 const exo2 = Exo_2({ subsets: ['latin'], variable: '--font-body', display: 'swap' })
 
@@ -22,7 +23,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
-      <body className="antialiased" style={{ fontFamily: 'var(--font-body), "Exo 2", system-ui, sans-serif' }}>{children}</body>
+      <body className="antialiased" style={{ fontFamily: 'var(--font-body), "Exo 2", system-ui, sans-serif' }}>
+        <AdBanner />
+        {children}
+      </body>
     </html>
   )
 }
